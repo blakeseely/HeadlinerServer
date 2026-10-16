@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Castro Theatre — Show Extraction Review</title>
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--panel2:#1e232c;--text:#e8eaf0;--mut:#9aa3b2;
+        --acc:#4f8cff;--ok:#39d98a;--warn:#ffb347;--bad:#ff5d5d;--line:#2a313d;
+        --c-music:#4f8cff;--c-film:#c792ea;--c-comedy:#ffb347;--c-other:#8b96a8}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.45}
+  header{position:sticky;top:0;z-index:10;background:rgba(15,17,21,.92);backdrop-filter:blur(8px);
+         border-bottom:1px solid var(--line);padding:14px 22px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  header h1{font-size:18px;margin:0}
+  header .sub{color:var(--mut);font-size:12px}
+  .spacer{flex:1}
+  .stat{font-size:12px;color:var(--mut);background:var(--panel);border:1px solid var(--line);
+        padding:6px 10px;border-radius:8px}
+  .stat b{color:var(--text)}
+  .search{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+          padding:7px 10px;font-size:13px;width:200px}
+  select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px}
+  .layout{display:grid;grid-template-columns:minmax(300px,1fr) minmax(380px,1.4fr);gap:0;height:calc(100vh - 58px)}
+  .col{overflow:auto}
+  .list{border-right:1px solid var(--line);background:var(--panel)}
+  .detail{background:var(--bg)}
+  .item{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;border-left:3px solid transparent}
+  .item:hover{background:var(--panel2)}
+  .item.active{background:var(--panel2);border-left-color:var(--acc)}
+  .item .name{font-weight:600;font-size:14px}
+  .item .meta{font-size:12px;color:var(--mut);margin-top:2px}
+  .month-h{position:sticky;top:0;background:var(--panel);padding:8px 14px;font-size:12px;letter-spacing:.08em;
+           color:var(--acc);font-weight:700;border-bottom:1px solid var(--line);z-index:2}
+  .flag{font-size:11px;padding:1px 6px;border-radius:6px;margin-left:6px}
+  .flag.ok{background:rgba(57,217,138,.15);color:var(--ok)}
+  .flag.warn{background:rgba(255,179,71,.18);color:var(--warn)}
+  .flag.bad{background:rgba(255,93,93,.18);color:var(--bad)}
+  .dhead{padding:20px 24px 8px;border-bottom:1px solid var(--line)}
+  .dhead h2{margin:0;font-size:22px}
+  .dhead .bill{font-size:14px;color:var(--mut);margin-top:4px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:16px 24px}
+  .card h3{margin:0 0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:5px}
+  .val{font-size:15px;font-weight:600}
+  .val.miss{color:var(--warn);font-style:italic}
+  .match{font-size:11px;padding:1px 6px;border-radius:6px;margin-left:6px}
+  .match.ok{background:rgba(57,217,138,.15);color:var(--ok)}
+  .match.warn{background:rgba(255,179,71,.18);color:var(--warn)}
+  .match.bad{background:rgba(255,93,93,.18);color:var(--bad)}
+  a.btn{display:inline-block;margin-top:12px;background:var(--acc);color:#fff;text-decoration:none;
+        padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600}
+  a.plain{color:var(--acc);font-size:12px;text-decoration:none}
+  .empty{padding:40px;color:var(--mut);text-align:center}
+  .legend{padding:10px 24px;font-size:12px;color:var(--mut)}
+  .chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+        padding:2px 8px;margin:2px 4px 2px 0;font-size:12px}
+  .chip.multi{background:rgba(255,179,71,.14);border-color:var(--warn);color:var(--warn)}
+  .chip.supp{opacity:.9}
+  .cat{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+       padding:2px 9px;border-radius:20px;border:1px solid transparent;vertical-align:middle}
+  .cat.music{color:var(--c-music);background:rgba(79,140,255,.14);border-color:rgba(79,140,255,.4)}
+  .cat.film{color:var(--c-film);background:rgba(199,146,234,.14);border-color:rgba(199,146,234,.4)}
+  .cat.comedy{color:var(--c-comedy);background:rgba(255,179,71,.14);border-color:rgba(255,179,71,.4)}
+  .cat.other{color:var(--c-other);background:rgba(139,150,168,.14);border-color:rgba(139,150,168,.4)}
+  .desc{font-size:13px;color:var(--mut);white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:4px}
+  .lbl-sub{font-size:10px;color:var(--mut);text-transform:none;letter-spacing:0}
+  @media(max-width:760px){.layout{grid-template-columns:1fr;height:auto}.col{max-height:50vh}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>The Castro Theatre</h1>
+    <div class="sub" id="srcsub"></div>
+  </div>
+  <div class="spacer"></div>
+  <input class="search" id="search" placeholder="Filter shows…">
+  <select id="catf"><option value="">All types</option>
+    <option value="music">Music</option><option value="film">Film</option>
+    <option value="comedy">Comedy</option><option value="other">Other</option></select>
+  <select id="status"><option value="">All status</option>
+    <option value="ok">✓ complete</option><option value="warn">⚠ review</option><option value="bad">✗ issue</option></select>
+  <span class="stat" id="stat"></span>
+  <span class="stat" id="catstat"></span>
+  <a class="plain" id="raw" target="_blank">view JSON</a>
+</header>
+<div class="layout">
+  <div class="col list" id="list"></div>
+  <div class="col detail" id="detail"><div class="empty">Select a show on the left to review the extraction.</div></div>
+</div>
+<script>
+/*__SHOWS_PAYLOAD__*/
+const DATA = window.SHOWS;
+const MONFULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+let cur=null, filter="", status="", cat="";
+
+function statusOf(s){
+  const miss=[];
+  if(!s.date) miss.push("date");
+  if(!s.headline_artists||!s.headline_artists.length) miss.push("headliner");
+  if(s.needs_review) miss.push("needs review");
+  if(!miss.length) return {cls:"ok",label:"complete"};
+  if(miss.includes("headliner")||miss.includes("date")) return {cls:"bad",label:miss.join(", ")};
+  return {cls:"warn",label:miss.join(", ")};
+}
+function esc(x){return (x==null?"":String(x)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+const aname=a=> (a && typeof a==="object") ? a.name : String(a);
+const anames=a=> (a||[]).map(aname).join(" / ");
+// Castro has no Apple Music matching: name chips are plain (support gets a muted style).
+const chips=a=> (a||[]).map(x=>`<span class="chip${x===a[0]? "": " supp"}">${esc(aname(x))}</span>`).join("");
+
+function renderList(){
+  const list=document.getElementById("list");
+  const f=filter.toLowerCase(), st=status, c=cat;
+  let html="", lastMonth="";
+  let n=0;
+  for(const s of DATA.shows){
+    if(f && !JSON.stringify([s.headline_artists,s.support_artists,(s.show_title||""),(s.note||"")]).toLowerCase().includes(f)) continue;
+    if(c && s.event_type!==c) continue;
+    if(st){const stt=statusOf(s).cls; if(stt!==st) continue;}
+    n++;
+    const mkey=s.date? s.date.slice(0,4)+"-"+s.date.slice(5,7):"????";
+    if(mkey!==lastMonth){
+      lastMonth=mkey;
+      html+=`<div class="month-h">${s.date?MONFULL[parseInt(s.date.slice(5,7))-1]+" "+s.date.slice(0,4):"No date"}</div>`;
+    }
+    const stt=statusOf(s);
+    const nm=anames(s.headline_artists);
+    const sup=anames(s.support_artists);
+    const gl=(s.event_type==="music"?"♪":(s.event_type==="film"?"🎬":(s.event_type==="comedy"?"😄":"◆")));
+    html+=`<div class="item ${cur===s? 'active':''}" data-id="${DATA.shows.indexOf(s)}">
+      <div class="name">${gl} ${esc(nm)} <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓':(stt.cls==='warn'?'⚠':'✗')}</span></div>
+      <div class="meta">${s.date||'?'}${s.show_time?' '+esc(s.show_time):''}${sup? ' · +'+esc(sup):''} ${s.show_title?' · '+esc(s.show_title):''}</div>
+    </div>`;
+  }
+  if(!n) html=`<div class="empty">No shows match.</div>`;
+  list.innerHTML=html;
+  list.querySelectorAll(".item").forEach(el=>el.onclick=()=>select(parseInt(el.dataset.id)));
+  document.getElementById("stat").innerHTML=`<b>${n}</b> of ${DATA.shows.length} shows`;
+}
+
+function select(i){ cur=i; renderList(); renderDetail(); }
+
+function renderDetail(){
+  const d=document.getElementById("detail");
+  if(cur==null){d.innerHTML=`<div class="empty">Select a show on the left to review the extraction.</div>`;return;}
+  const s=DATA.shows[cur];
+  const stt=statusOf(s);
+  const head=(s.headline_artists&&s.headline_artists.length)?chips(s.headline_artists):`<span class="val miss">— missing —</span>`;
+  const sup=(s.support_artists&&s.support_artists.length)?chips(s.support_artists):`<span class="val miss">— none listed —</span>`;
+  const title=s.show_title?`<div class="val">${esc(s.show_title)}</div>`:``;
+  const note=s.note?`<p style="font-size:12px;color:var(--warn);margin:8px 0 0">${esc(s.note)}</p>`:``;
+  const age=s.age_rating?`<div class="val">${esc(s.age_rating)}</div>`:``;
+  const desc=s.description?`<div class="desc">${esc(s.description)}</div>`:``;
+  const tstat=s.ticket_status?`<span class="match ${s.ticket_status.toLowerCase().includes('sold')?'bad':'ok'}">${esc(s.ticket_status)}</span>`:``;
+  const row=(lbl,val,ok)=>`<div><div class="lbl">${lbl} ${ok!==undefined?`<span class="match ${ok}">${ok==='ok'?'captured':'check'}</span>`:''}</div>
+      <div class="val ${val?'':'miss'}">${esc(val)||"—"}</div></div>`;
+  d.innerHTML=`
+   <div class="dhead">
+     <h2>${esc(anames(s.headline_artists)||"?")} <span class="cat ${s.event_type}">${s.event_type}</span></h2>
+     <div class="bill">${esc(s.show_title||"")}</div>
+   </div>
+   <div class="legend">Type: <span class="cat ${s.event_type}">${s.event_type}</span>
+     <span class="flag ${stt.cls}" style="margin-left:8px">${stt.cls==='ok'?'✓ complete':(stt.cls==='warn'?'⚠':'✗')}</span>
+     ${stt.label!=='complete'?('— '+esc(stt.label)):''}</div>
+   <div class="card"><h3>My extraction</h3>
+     <div class="grid">
+       <div><div class="lbl">Headliner</div>${head}</div>
+       <div><div class="lbl">Support</div>${sup}</div>
+       ${title?`<div><div class="lbl">Show / Tour title</div>${title}</div>`:``}
+       ${row("Date", s.date||"")} ${row("Doors", s.doors||"")}
+       ${row("Show time", s.show_time||"")} ${row("Tickets", s.ticket_link?"available":"", (s.ticket_link? "ok":"bad"))}
+       ${s.age_rating?row("Ages", s.age_rating):``}
+     </div>
+     ${note}
+     ${s.ticket_status?`<p style="font-size:12px;color:var(--mut);margin:8px 0 0">Ticket status: ${tstat}</p>`:``}
+     ${s.description?`<div class="lbl" style="margin-top:12px">Description (from site)</div>${desc}`:``}
+     ${s.ticket_link?`<a class="btn" target="_blank" href="${esc(s.ticket_link)}">Buy tickets →</a>
+     <a class="plain" target="_blank" href="${esc(s.event_page)}" style="margin-left:10px">Open on website →</a>`
+      :`<a class="plain" target="_blank" href="${esc(s.event_page)}" style="margin-left:10px">Open on website →</a>`}
+   </div>
+   <div class="card"><h3>Verify against the source</h3>
+     <div class="grid">
+       ${row("Type on site","open page")} ${row("Times on site","open page")}
+       ${row("Support on site","open page")} ${row("Ticket status on site","open page")}
+     </div>
+     <a class="btn" target="_blank" href="${esc(s.event_page)}">Open source event page →</a>
+     <p style="font-size:12px;color:var(--mut);margin-top:12px">
+       Compare the values above to the source page. The type (music / film / comedy) is derived from the
+       description text since the site has no category labels — flag anything that looks mislabeled.</p>
+   </div>`;
+}
+
+document.getElementById("search").oninput=e=>{filter=e.target.value;renderList();};
+document.getElementById("status").onchange=e=>{status=e.target.value;renderList();};
+document.getElementById("catf").onchange=e=>{cat=e.target.value;renderList();};
+document.getElementById("srcsub").textContent=`${DATA.venue} · ${DATA.count} shows · source ${DATA.source_url} · captured ${DATA.scraped_at}`;
+document.getElementById("raw").href="shows.json";
+const t=DATA.event_type_stats||{};
+document.getElementById("catstat").innerHTML=
+  `Music <b>${t.music||0}</b> · Film <b>${t.film||0}</b> · Comedy <b>${t.comedy||0}</b> · Other <b>${t.other||0}</b>`;
+renderList();
+</script>
+</body>
+</html>

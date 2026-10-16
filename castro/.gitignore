@@ -1,0 +1,4 @@
+# Raw HTML snapshots are bulky; the derived JSON is what the viewer uses.
+cache/calendar_raw.html
+__pycache__/
+*.pyc
