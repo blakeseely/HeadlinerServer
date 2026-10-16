@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Headliners — show extraction reviewer</title>
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--panel2:#1e232c;--text:#e8eaf0;--mut:#9aa3b2;
+        --acc:#4f8cff;--line:#2a313d}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;
+       display:flex;flex-direction:column;align-items:center}
+  .wrap{width:100%;max-width:860px;padding:8vh 20px 40px}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{color:var(--mut);font-size:14px;margin-bottom:34px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+  a.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        padding:22px 22px 18px;text-decoration:none;color:var(--text);transition:transform .12s ease, border-color .12s ease}
+  a.card:hover{transform:translateY(-3px);border-color:var(--acc)}
+  a.card .name{font-size:19px;font-weight:700;margin-bottom:2px}
+  a.card .city{font-size:12px;color:var(--mut);margin-bottom:14px}
+  .stats{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--mut)}
+  .stats b{color:var(--text)}
+  .pill{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 9px}
+  .foot{margin-top:40px;font-size:12px;color:var(--mut)}
+  .foot code{color:var(--text);background:var(--panel);border:1px solid var(--line);
+             border-radius:6px;padding:1px 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Headliners</h1>
+  <div class="sub">Local show-extraction reviewer &mdash; pick a venue to inspect its shows.</div>
+  <div class="grid" id="cards"></div>
+  <div class="foot">Each venue runs its own pipeline (<code>fetch</code> &rarr; <code>build.py</code> &rarr; this reviewer)
+    and compares the extraction side-by-side with the venue&rsquo;s live site.</div>
+</div>
+<script>
+/*__VENUES_PAYLOAD__*/
+const VENUES = window.VENUES;
+const cards = document.getElementById("cards");
+cards.innerHTML = VENUES.map(v => {
+  const pills = (v.stat_pills || []).map(p => `<span class="pill">${p}</span>`).join("");
+  return `<a class="card" href="${v.path}">
+    <div class="name">${v.name}</div>
+    <div class="city">${v.city}</div>
+    <div class="stats"><span class="pill"><b>${v.count}</b> shows</span>${pills}</div>
+  </a>`;
+}).join("");
+</script>
+</body>
+</html>
