@@ -25,6 +25,8 @@ independent/         venue adapter: fetch + title parser + build.py
 castro/              venue adapter: fetch + category classifier + build.py
 fillmore/            venue adapter: fetch (RSC payload) + bill reconciler + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
+update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
+                     + per-venue diff; --full = full Apple Music re-match)
 ```
 
 Each venue directory holds only what's venue-specific:
@@ -90,7 +92,19 @@ from `common/` automatically.
 
 ```
 python3 serve.py            # ONE entry point: http://127.0.0.1:8050
+python3 update_all.py       # refresh every venue's data/shows.json
+python3 update_all.py --full
 ```
+
+`update_all.py` runs, per venue (registry order): fetch → build → Apple Music
+lookup → build, then prints a diff vs the previous shows.json
+(added / removed / schedule-changed / link-only). By default the site is
+re-crawled only when the venue's cache is > 24h old (`.fetched_at` stamp;
+`--refresh` forces it), and Apple Music is **incremental** — `common/lookup.py`
+skips artists that already have a terminal status in the venue's
+`cache/lookup.json` (and retries `error` entries). `--full` forces a complete
+Apple Music re-match (and a re-crawl). `--venues a,b` restricts the run. A
+venue whose fetch fails is skipped with a warning instead of blocking the rest.
 
 `/` is the theater picker; `/independent/` and `/castro/` are the reviewers
 (shared template, per-venue data injected). Data is re-read per request, so a

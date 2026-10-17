@@ -266,10 +266,14 @@ def _amc_search(term):
             "artistName": a.get("name"),
             "artistLinkUrl": f"https://music.apple.com/us/artist/{aid}" if aid else None,
         })
-    return res or None
+    return res  # [] (searched, genuinely none) NOT None (search failed)
 
 
 def search(term):
+    """Search the artist catalog. Returns a list of hits, or None when the
+    search FAILED (both the web API and the amc fallback failed) — a search
+    that succeeded but found nothing returns an empty list, so callers can
+    tell "not in the catalog" (honest, terminal) from "retry later"."""
     import time, urllib.parse, urllib.request
     url = "https://itunes.apple.com/search?" + urllib.parse.urlencode(
         {"term": term, "media": "music", "entity": "musicArtist", "limit": 15})
@@ -288,7 +292,9 @@ def search(term):
     # Blocked (403) or the API is down: fall back to the Apple Music app's
     # own catalog search via amc, which is not bot-walled.
     fb = _amc_search(term)
-    return fb
+    if fb is not None:
+        return fb
+    return None
 
 
 def url_of(res):
@@ -310,6 +316,7 @@ def lookup(artist):
       status error    -- network failure
     """
     results = []
+    searched = 0
     for v in _search_variants(artist):
         r = search(v)
         if r is None:
@@ -317,6 +324,7 @@ def lookup(artist):
             # this variant", not a hard error — the other variants may
             # still resolve the name (see the amc fallback in search()).
             continue
+        searched += 1
         results.extend(r)
     if not results:
         # Compound bill: "A and B", "A x B" — no catalog artist matches the
@@ -327,10 +335,19 @@ def lookup(artist):
                 r = search(v)
                 if r is None:
                     continue
+                searched += 1
                 results.extend(r)
             if results:
                 break
     if not results:
+        if searched:
+            # The searches succeeded and the catalog genuinely has nothing
+            # for this name: an honest "not found", not a failure. Marking
+            # it error would make resume mode re-query Apple Music for it
+            # on every single run.
+            return {"link": None, "matched": None, "confidence": 0.0,
+                    "status": "no_exact"}
+        # Every search call failed (network/bot wall): keep the retry.
         return {"link": None, "matched": None, "confidence": 0.0,
                 "status": "error"}
 
