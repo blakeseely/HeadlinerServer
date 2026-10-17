@@ -33,6 +33,13 @@ VENUES = {
         # (film "artists" — directors, screenwriters — are not linked).
         "has_apple_music": True,
     },
+    "fillmore": {
+        "key": "fillmore",
+        "name": "The Fillmore",
+        "city": "San Francisco, CA",
+        "dir": os.path.join(ROOT, "fillmore"),
+        "has_apple_music": True,
+    },
 }
 
 

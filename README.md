@@ -10,6 +10,7 @@ for every venue; each theater is a thin adapter on top of it.
 |-----|-------|--------|-------|-------|
 | [`independent/`](independent/) | The Independent, SF | theindependentsf.com | `:8050/independent/` | music; Apple Music matching (confidence tiers) |
 | [`castro/`](castro/) | The Castro Theatre, SF | thecastro.com | `:8050/castro/` | music + film + comedy + other (derived); Apple Music matching on music + comedy (film artists are movie/director names, not catalog artists) |
+| [`fillmore/`](fillmore/) | The Fillmore, SF | thefillmore.com | `:8050/fillmore/` | music (site "Arts & Theatre" segment = comedy/variety → `other`); Apple Music matching on all |
 
 ## Layout
 
@@ -22,6 +23,7 @@ common/              THE shared pipeline (venue-agnostic)
   viewer/index.html  ONE reviewer template; adapts to each venue's fields
 independent/         venue adapter: fetch + title parser + build.py
 castro/              venue adapter: fetch + category classifier + build.py
+fillmore/            venue adapter: fetch (RSC payload) + bill reconciler + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 ```
 

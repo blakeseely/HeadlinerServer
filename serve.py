@@ -8,10 +8,10 @@ individual reviewer. This replaces running the two venues on separate ports:
 
 Routes:
     /                  -> picker (viewer/index.html)
-    /independent/      -> The Independent reviewer   (independent/viewer/)
-    /castro/           -> The Castro reviewer        (castro/viewer/)
-    /independent/shows.json, /castro/shows.json
-    /independent/<file>, /castro/<file>  (static)
+    /independent/      -> The Independent reviewer   (independent/)
+    /castro/           -> The Castro reviewer        (castro/)
+    /fillmore/         -> The Fillmore reviewer      (fillmore/)
+    /<venue>/shows.json, /<venue>/<file>  (static)
 
 Run this instead of the per-venue serve.py scripts (those still work, on
 8050/8051, if you want them standalone).
@@ -26,6 +26,8 @@ VENUES = {
                     "venue_dir": os.path.join(ROOT, "independent")},
     "castro":      {"name": "The Castro Theatre", "city": "San Francisco, CA",
                     "venue_dir": os.path.join(ROOT, "castro")},
+    "fillmore":    {"name": "The Fillmore", "city": "San Francisco, CA",
+                    "venue_dir": os.path.join(ROOT, "fillmore")},
 }
 
 def venue_pills(key, data):
