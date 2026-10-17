@@ -9,7 +9,7 @@ for every venue; each theater is a thin adapter on top of it.
 | Dir | Venue | Source | Route | Notes |
 |-----|-------|--------|-------|-------|
 | [`independent/`](independent/) | The Independent, SF | theindependentsf.com | `:8050/independent/` | music; Apple Music matching (confidence tiers) |
-| [`castro/`](castro/) | The Castro Theatre, SF | thecastro.com | `:8050/castro/` | music + film + comedy + other (derived); no Apple Music |
+| [`castro/`](castro/) | The Castro Theatre, SF | thecastro.com | `:8050/castro/` | music + film + comedy + other (derived); Apple Music matching on music + comedy (film artists are movie/director names, not catalog artists) |
 
 ## Layout
 
@@ -68,9 +68,18 @@ the viewer and the picker render whichever are present.
    Castro does).
 2. Write `<key>/build.py`: map each raw event into `common.build.show(...)`
    records, then call `common.build.run_build(venue, key, venue_url, source_url, shows, stats)`.
-3. Register it in `common/venues.py` (one dict entry: name, city, dir, has_apple_music).
-4. Optionally, if it should get Apple Music links:
+   Shape the artists with `common.apple_music.artist_obj(name, lookup)` so
+   every show carries Apple Music links — see the mandate below.
+3. Register it in `common/venues.py` with `has_apple_music: True` (one dict
+   entry: name, city, dir, has_apple_music).
+4. **Apple Music links — REQUIRED for every new theater:**
    `cd <key> && python3 ../common/lookup.py --full && python3 build.py`.
+   Matching is **best-effort**: the shared engine resolves whatever it can
+   resolve and honestly marks the rest not-found. We do NOT try to code every
+   possible billed name — a small number of unresolvable names (compound
+   bills, film credits, odd spellings) is expected and acceptable. The goal
+   is to get *most*, and the `stats.apple_music` block (exact / close /
+   needs_review / not_found) makes the coverage visible and reviewable.
 
 That's it — the picker card, the reviewer page, and the JSON envelope come
 from `common/` automatically.
@@ -85,9 +94,28 @@ python3 serve.py            # ONE entry point: http://127.0.0.1:8050
 (shared template, per-venue data injected). Data is re-read per request, so a
 fresh `build.py` shows up immediately.
 
-## Apple Music safety rule
+## Apple Music matching (mandatory, best-effort)
 
-Fuzzy (non-exact) matches below confidence **0.80** (`LINK_FLOOR` in
-`common/apple_music.py`) are never auto-linked — the artist is marked not
-found but the near-miss name + score are retained for human review. This rule
-lives in exactly one place and applies to every venue that matches.
+**Every theater gets Apple Music links on every show where possible.** When
+adding a new theater, run the shared lookup (`common/lookup.py`) over its
+artists — matching is on for all venues, not opt-in.
+
+Matching is **best-effort by design**: we cannot code every possible billed
+name, and the engine is *honest* rather than clever. A name it cannot
+confidently resolve is marked not-found (or flagged `needs_review` for a close
+near-miss) rather than force-linked. A handful of unresolvable names per
+venue is expected and fine — the success bar is "get most," not 100%. The
+`stats.apple_music` block (unique / found / exact / close / needs_review /
+not_found) reports the real coverage so the reviewer can see what didn't
+resolve.
+
+Two safety rules guard the "get most" goal from becoming "get wrong":
+
+- **`LINK_FLOOR` 0.80** (in `common/apple_music.py`): a fuzzy (non-exact)
+  match below confidence 0.80 is never auto-linked — the artist is marked
+  not-found but the near-miss name + score are retained for human review.
+- **Compound bills**: a billed "A and B" / "A x B" that matches only one act
+  is linked to that act but flagged "compound bill — links to … only", never
+  silently presented as a full match.
+
+Both rules live in exactly one place and apply to every venue that matches.

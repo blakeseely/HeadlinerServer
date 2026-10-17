@@ -31,10 +31,11 @@ So the cascade is (first hit wins):
   7. default                              -> music; needs_review when the
                                              body is only the generic stub.
 
-No Apple Music matching (per request): artist records are plain-name objects
-(common.apple_music.plain_artist); the shared viewer renders them without
-link/chip tiers. The show shape, stats block, sort, and JSON writer come
-from common.build.
+No Apple Music matching for film: a film's billed name is the movie (or its
+director), which Apple Music's artist catalog does not cover. Music and
+comedy performers ARE matched via the shared engine (common/lookup.py
+populates cache/lookup.json; common.apple_music.artist_obj renders it).
+The show shape, stats blocks, sort, and JSON writer come from common.build.
 """
 import os, re, sys, json, datetime
 from collections import Counter
@@ -47,6 +48,7 @@ from common import build as common_build
 ROOT = HERE
 CAL = os.path.join(ROOT, "cache", "calendar.json")
 DET = os.path.join(ROOT, "cache", "details.json")
+LOOKUP_CACHE = os.path.join(ROOT, "cache", "lookup.json")
 DST = os.path.join(ROOT, "data", "shows.json")
 
 VENUE = "The Castro Theatre"
@@ -206,6 +208,7 @@ def main():
     rows = json.load(open(CAL))
     details = json.load(open(DET))
     det_by_url = {v["url"]: v for v in details.values()}
+    lookup = apple_music.load_lookup_cache(LOOKUP_CACHE)
 
     shows = []
     for r in rows:
@@ -225,8 +228,16 @@ def main():
         rec = common_build.show(
             event_type=cat,
             needs_review=bool(review),
-            headline_artists=[apple_music.plain_artist(h) for h in head],
-            support_artists=[apple_music.plain_artist(s) for s in support],
+            # Film: the billed name is a movie/director — plain, never linked.
+            # Music + comedy: Apple Music-matched artist records (shared engine).
+            headline_artists=(
+                [apple_music.plain_artist(h) for h in head]
+                if cat == "film" else
+                [apple_music.artist_obj(h, lookup) for h in head]),
+            support_artists=(
+                [apple_music.plain_artist(s) for s in support]
+                if cat == "film" else
+                [apple_music.artist_obj(s, lookup) for s in support]),
             show_title=show_title,
             date=iso,
             doors=r.get("doors"),
@@ -253,7 +264,10 @@ def main():
             rec["description"] = body[:1200]
         shows.append(rec)
 
-    stats = {"event_types": dict(Counter(s["event_type"] for s in shows))}
+    stats = {
+        "event_types": dict(Counter(s["event_type"] for s in shows)),
+        "apple_music": apple_music.apple_music_stats(shows),
+    }
     common_build.run_build(VENUE, VENUE_ID, SRC_URL, SRC_URL, shows, stats)
 
     by_type = stats["event_types"]

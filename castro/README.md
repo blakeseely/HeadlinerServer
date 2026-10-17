@@ -37,9 +37,13 @@ python3 build.py            # rebuild data/shows.json
   line is format/credits, so support only applies to music events.
 - `age_rating()` — 18+ / 16+ / R / all-ages from the description.
 
-No Apple Music matching (per request): artist records are plain-name objects
-(`common.apple_music.plain_artist`); the shared viewer renders them without
-link tiers.
+Apple Music matching is on for **music + comedy** performers (the shared
+engine, via `common/lookup.py` → `cache/lookup.json`); the billed names of
+**film** events are the movie or its director, which the artist catalog
+doesn't cover, so those stay plain-name records. Best-effort by design —
+a handful of unresolvable names is expected, and the `stats.apple_music`
+block reports the real coverage.
+
 
 ## Notes
 

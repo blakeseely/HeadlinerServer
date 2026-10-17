@@ -29,7 +29,9 @@ VENUES = {
         "name": "The Castro Theatre",
         "city": "San Francisco, CA",
         "dir": os.path.join(ROOT, "castro"),
-        "has_apple_music": False,
+        # Apple Music matching applies to its music + comedy performers
+        # (film "artists" — directors, screenwriters — are not linked).
+        "has_apple_music": True,
     },
 }
 

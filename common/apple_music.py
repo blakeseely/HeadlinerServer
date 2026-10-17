@@ -101,6 +101,11 @@ def _search_variants(name):
     bare = re.sub(r"^\s*(dj)\s+", "", norm(lead or name))
     if bare and bare != norm(lead or name):
         vs.append(bare)
+    # "Chris Fleming Live" -> "Chris Fleming": a bare performance descriptor
+    # at the end of a name is not part of the artist name.
+    m = re.search(r"^(.*?)\s+(?:live|dj|solo|acoustic)$", norm(lead or name))
+    if m and m.group(1):
+        vs.append(m.group(1))
     if "(" in name:
         vs.append(re.sub(r"\s+", " ", strip_paren(name)).strip())
     seen, out = set(), []
@@ -221,6 +226,49 @@ def confidence(query, cand):
 # --------------------------------------------------------------------------
 # API lookup (driver helpers; main() in lookup.py uses these)
 # --------------------------------------------------------------------------
+def _split_compound(name):
+    """'A and B' / 'A x B' -> ['A', 'B']. Empty when the name is a single
+    (uncompounded) act. The parts are the search targets, never billed names."""
+    s = norm(strip_paren(name))
+    parts = re.split(r"\s+and\s+|\s*x\s+|\s*\+\s*", s)
+    parts = [p.strip() for p in parts if len(p.strip()) >= 3]
+    if len(parts) < 2:
+        return []
+    return parts
+
+
+def _amc_search(term):
+    """Fallback search via the user's `amc` Apple Music CLI.
+
+    The web iTunes /search API gets intermittently 403-blocked by Apple's
+    bot layer (it can 403 ALL terms at once, from both curl and a real
+    browser). The Apple Music app's own catalog API (what `amc` drives) is
+    not affected. Returns the same result-shape as search() — one record per
+    hit with the fields url_of() needs — or None if amc is unavailable.
+    """
+    import shutil, subprocess
+    if not shutil.which("amc"):
+        return None
+    try:
+        out = subprocess.run(
+            ["amc", "catalog-search", term, "--type", "artist", "--limit", "15"],
+            capture_output=True, text=True, timeout=30)
+    except Exception:
+        return None
+    try:
+        doc = json.loads(out.stdout[out.stdout.find("{"):])
+    except Exception:
+        return None
+    res = []
+    for a in doc.get("artists", [])[:15]:
+        aid = a.get("id")
+        res.append({
+            "artistName": a.get("name"),
+            "artistLinkUrl": f"https://music.apple.com/us/artist/{aid}" if aid else None,
+        })
+    return res or None
+
+
 def search(term):
     import time, urllib.parse, urllib.request
     url = "https://itunes.apple.com/search?" + urllib.parse.urlencode(
@@ -233,9 +281,14 @@ def search(term):
             break
         except Exception:
             if attempt == 2:
-                return None
+                break
             time.sleep(2.0)
-    return data.get("results", []) if data is not None else None
+    if data is not None:
+        return data.get("results", [])
+    # Blocked (403) or the API is down: fall back to the Apple Music app's
+    # own catalog search via amc, which is not bot-walled.
+    fb = _amc_search(term)
+    return fb
 
 
 def url_of(res):
@@ -260,9 +313,26 @@ def lookup(artist):
     for v in _search_variants(artist):
         r = search(v)
         if r is None:
-            return {"link": None, "matched": None, "confidence": 0.0,
-                    "status": "error"}
+            # A failed search (blocked/down) is treated as "no results for
+            # this variant", not a hard error — the other variants may
+            # still resolve the name (see the amc fallback in search()).
+            continue
         results.extend(r)
+    if not results:
+        # Compound bill: "A and B", "A x B" — no catalog artist matches the
+        # whole string, but the parts resolve individually. Link the better
+        # part, flag as compound for human review.
+        for part in _split_compound(artist):
+            for v in _search_variants(part):
+                r = search(v)
+                if r is None:
+                    continue
+                results.extend(r)
+            if results:
+                break
+    if not results:
+        return {"link": None, "matched": None, "confidence": 0.0,
+                "status": "error"}
 
     best, bestc, bestres = 0.0, None, None
     seen = set()
@@ -276,6 +346,24 @@ def lookup(artist):
             best, bestc, bestres = sc, an, res
 
     link = url_of(bestres) if bestres else None
+    # Compound-bill flag: the billed name is a multi-act bill ('A and B',
+    # 'A x B') AND the catalog match is one act of it. A match spelled 'A
+    # & B' for the bill 'A and B' is the WHOLE act (one artist) — not
+    # compound — even though the tokens line up.
+    compound = False
+    parts = _split_compound(artist)
+    if parts and bestc:
+        q = norm_accentless(strip_paren(artist))
+        c = norm_accentless(strip_paren(bestc))
+        # Whole-act matches are NOT compound: 'A and B' matched to 'A & B'
+        # (one act with an ampersand), or to a name carrying a band
+        # descriptor ('Jack Kays and his Band' -> 'Jack Kays & his Band').
+        whole_spelling = c.replace("-", " ") == q.replace("-", " ").replace(" and ", " & ")
+        descriptor_tail = bool(re.search(
+            r"(band|group|crew|ensemble|orchestra|choir|allstars|all stars)$", c))
+        if c in q and c != q and "&" not in c and not whole_spelling \
+                and not descriptor_tail:
+            compound = True
     if best >= 1.0:
         status = "exact"
     elif best >= 0.80:
@@ -290,7 +378,8 @@ def lookup(artist):
             status = "no_exact"
     if status == "maybe" and link:
         status = "likely"  # a link exists: treat as found-but-flagged, not not-found
-    return {"link": link, "matched": bestc, "confidence": best, "status": status}
+    return {"link": link, "matched": bestc, "confidence": best,
+            "status": status, "compound": compound}
 
 
 # --------------------------------------------------------------------------
@@ -333,13 +422,31 @@ def artist_obj(name, cache):
         m = re.sub(r"\s+", " ", matched).strip().lower()
         n = re.sub(r"\s+", " ", name).strip().lower()
         if m != n:
-            ql = _tail(name).lower() or None
-            if conf == 1.0 or m == (ql or "").lower():
-                label = None  # catalog entry is the billed lead name: clean
-            elif conf >= 0.95:
-                label = None  # high-confidence variant spelling; link verified
+            # Compound flag: prefer the one stored by lookup(); recompute for
+            # legacy cache entries that predate the field.
+            if "compound" in r:
+                compound = bool(r.get("compound"))
             else:
-                label = "close match: " + matched
+                parts = _split_compound(name)
+                q = norm_accentless(strip_paren(name))
+                cm = norm_accentless(strip_paren(matched))
+                whole_spelling = cm.replace("-", " ") == q.replace("-", " ").replace(" and ", " & ")
+                descriptor_tail = bool(re.search(
+                    r"(band|group|crew|ensemble|orchestra|choir|allstars|all stars)$", cm))
+                compound = bool(parts) and cm in q and cm != q and "&" not in cm \
+                    and not whole_spelling and not descriptor_tail
+            if compound:
+                # billed 'A and B' matched to 'A': a link is right, but it
+                # covers only part of the bill — flag for review.
+                label = f"compound bill — links to {matched} only"
+            else:
+                ql = _tail(name).lower() or None
+                if conf == 1.0 or m == (ql or "").lower():
+                    label = None  # catalog entry is the billed lead name: clean
+                elif isinstance(conf, (int, float)) and conf >= 0.95:
+                    label = None  # high-confidence variant spelling; link verified
+                else:
+                    label = "close match: " + matched
     return {"name": name,
             "apple_music": link if found else None,
             "found": found,
