@@ -11,6 +11,7 @@ for every venue; each theater is a thin adapter on top of it.
 | [`independent/`](independent/) | The Independent, SF | theindependentsf.com | `:8050/independent/` | music; Apple Music matching (confidence tiers) |
 | [`castro/`](castro/) | The Castro Theatre, SF | thecastro.com | `:8050/castro/` | music + film + comedy + other (derived); Apple Music matching on music + comedy (film artists are movie/director names, not catalog artists) |
 | [`fillmore/`](fillmore/) | The Fillmore, SF | thefillmore.com | `:8050/fillmore/` | music (site "Arts & Theatre" segment = comedy/variety → `other`); Apple Music matching on all |
+| [`gamh/`](gamh/) | Great American Music Hall, SF | greatmusichall.com | `:8050/gamh/` | music (festival/awards/poetry/Christmas bills → `other`); support acts from each show's detail page; Apple Music matching on all |
 
 ## Layout
 
@@ -24,6 +25,7 @@ common/              THE shared pipeline (venue-agnostic)
 independent/         venue adapter: fetch + title parser + build.py
 castro/              venue adapter: fetch + category classifier + build.py
 fillmore/            venue adapter: fetch (RSC payload) + bill reconciler + build.py
+gamh/                venue adapter: fetch (JSON-LD + detail pages) + support parser + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
                      + per-venue diff; --full = full Apple Music re-match)
