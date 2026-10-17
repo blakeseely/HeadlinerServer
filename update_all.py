@@ -131,6 +131,7 @@ def update_venue(v, full, refresh):
           f"{' + REFRESH' if refresh else ''} ===")
     shows_path = os.path.join(d, "data", "shows.json")
     old = load_shows(shows_path) if os.path.exists(shows_path) else {}
+    t_venue = datetime.datetime.now()
 
     # 1. fetch the schedule — skip when the cache is fresh (this is the
     #    expensive site-crawl part; --refresh forces a re-crawl)
@@ -179,6 +180,8 @@ def update_venue(v, full, refresh):
     print(f"  diff vs last run: {len(new)} shows — "
           f"added {len(added)}, removed {len(removed)}, "
           f"schedule-changed {len(sched)}, link-only {len(links)}")
+    dt_v = (datetime.datetime.now() - t_venue).total_seconds()
+    print(f"  venue time: {dt_v:.0f}s")
     for k in added[:6]:
         s = new[k]
         print(f"    + {h(k)}  {' / '.join(a['name'] for a in s.get('headline_artists', []))[:60]}")
