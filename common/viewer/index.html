@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Independent SF — Show Extraction Review</title>
+<title>Headliners — Show Extraction Review</title>
 <style>
   :root{--bg:#0f1115;--panel:#171a21;--panel2:#1e232c;--text:#e8eaf0;--mut:#9aa3b2;
-        --acc:#4f8cff;--ok:#39d98a;--warn:#ffb347;--bad:#ff5d5d;--line:#2a313d}
+        --acc:#4f8cff;--ok:#39d98a;--warn:#ffb347;--bad:#ff5d5d;--line:#2a313d;
+        --c-music:#4f8cff;--c-film:#c792ea;--c-comedy:#ffb347;--c-other:#8b96a8}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--text);line-height:1.45}
   header{position:sticky;top:0;z-index:10;background:rgba(15,17,21,.92);backdrop-filter:blur(8px);
-         border-bottom:1px solid var(--line);padding:14px 22px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+         border-bottom:1px solid var(--line);padding:12px 22px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   header h1{font-size:18px;margin:0}
   header .sub{color:var(--mut);font-size:12px}
   .spacer{flex:1}
@@ -19,7 +20,7 @@
         padding:6px 10px;border-radius:8px}
   .stat b{color:var(--text)}
   .search{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;
-          padding:7px 10px;font-size:13px;width:220px}
+          padding:7px 10px;font-size:13px;width:200px}
   select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font-size:13px}
   .layout{display:grid;grid-template-columns:minmax(280px,1fr) minmax(360px,1.4fr);gap:0;height:calc(100vh - 58px)}
   .col{overflow:auto}
@@ -64,17 +65,27 @@
   .chip.review{color:var(--warn);border-color:rgba(255,179,71,.5);border-style:dashed}
   .nf-tag{font-size:10px;color:var(--mut);margin-left:4px;text-transform:uppercase;letter-spacing:.04em}
   .lbl-sub{font-size:10px;color:var(--mut);text-transform:none;letter-spacing:0}
+  .desc{font-size:13px;color:var(--mut);white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:4px}
+  .cat{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+       padding:2px 9px;border-radius:20px;border:1px solid transparent;vertical-align:middle;margin-left:8px}
+  .cat.music{color:var(--c-music);background:rgba(79,140,255,.14);border-color:rgba(79,140,255,.4)}
+  .cat.film{color:var(--c-film);background:rgba(199,146,234,.14);border-color:rgba(199,146,234,.4)}
+  .cat.comedy{color:var(--c-comedy);background:rgba(255,179,71,.14);border-color:rgba(255,179,71,.4)}
+  .cat.other{color:var(--c-other);background:rgba(139,150,168,.14);border-color:rgba(139,150,168,.4)}
+  .catglyph{font-size:13px;margin-right:2px}
   @media(max-width:760px){.layout{grid-template-columns:1fr;height:auto}.col{max-height:50vh}}
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1>The Independent SF</h1>
+    <h1 id="vname">Headliners</h1>
     <div class="sub" id="srcsub"></div>
   </div>
   <div class="spacer"></div>
+  <a class="plain" href="/">‹ all venues</a>
   <input class="search" id="search" placeholder="Filter shows…">
+  <select id="catf"></select>
   <select id="status"><option value="">All status</option>
     <option value="ok">✓ complete</option><option value="warn">⚠ review</option><option value="bad">✗ issue</option></select>
   <span class="stat" id="stat"></span>
@@ -88,51 +99,62 @@
 <script>
 /*__SHOWS_PAYLOAD__*/
 const DATA = window.SHOWS;
+const STATS = DATA.stats || {};
+const AM = STATS.apple_music || null;      // independent-style Apple Music block
+const TYPES = STATS.event_types || null;   // castro-style category counts
+const HAS_AM = !!AM;
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONFULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
-let cur=null, filter="", status="";
+const CATGLYPH = {music:"♪", film:"🎬", comedy:"😄", other:"◆"};
+let cur=null, filter="", status="", cat="";
 
 function statusOf(s){
   const miss=[];
   if(!s.date) miss.push("date");
   if(!s.headline_artists||!s.headline_artists.length) miss.push("headliner");
-  if(!s.ticket_link) miss.push("tickets");
-  if(!s.show_time) miss.push("time");
+  if(!s.ticket_link && s.ticket_status!=="sold out") miss.push("tickets");
+  if(s.needs_review) miss.push("needs review");
   if(!miss.length) return {cls:"ok",label:"complete"};
-  if(miss.includes("headliner")||miss.includes("date")||miss.includes("tickets")) return {cls:"bad",label:miss.join(", ")};
+  if(miss.includes("headliner")||miss.includes("date")) return {cls:"bad",label:miss.join(", ")};
   return {cls:"warn",label:miss.join(", ")};
 }
-function esc(x){return (x==null?"":String(x)).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-// artists are now {name, apple_music, found}; a "plain" fallback for any legacy string
+function esc(x){return (x==null?"":String(x)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 const aname=a=> (a && typeof a==="object") ? a.name : String(a);
 const anames=a=> (a||[]).map(aname).join(" / ");
-// render one artist chip, as a link when Apple Music was found, else a muted "not found" chip
-function achip(a){
+// one artist chip: Apple Music link when the venue matches it, else a plain name
+function achip(a, supp){
   const name=aname(a);
-  const link=(a&&typeof a==="object")? a.apple_music : null;
-  const found=(a&&typeof a==="object")? a.found : true;
-  const conf=(a&&typeof a==="object")? a.confidence : 1;
-  const label=(a&&typeof a==="object")? a.match_label : null;
-  const multi=(a&&typeof a==="object")&&name.startsWith("(");
-  // confidence tiers: 1.0 exact, 0.8+ likely, 0.7+ needs review, else not found
-  const tier=(conf==null)?(found?1:0):(conf>=1?1:(conf>=0.8?2:(conf>=0.7?3:0)));
-  const cls="chip"+(multi?" multi":"")+(tier===2?" close":"")+(tier===3?" review":"")+(tier===0?" nf":"");
-  let tip=found?((conf==null||conf>=1)?"Apple Music — exact match":(conf>=0.8?"Apple Music — close match, verified":"Apple Music — needs review")):"No Apple Music match (not found)";
-  if(label) tip="Apple Music: "+label;
-  const pct=found?Math.round((conf==null?1:conf)*100):0;
-  const tag=tier===2?" ≈"+pct+"%":(tier===3?" ⚠":(tier===0?" <span class=\"nf-tag\">not found</span>":""));
-  if(link) return `<a class="${cls}" href="${esc(link)}" target="_blank" title="${esc(tip)}">♪ ${esc(name)}${tag}</a>`;
-  return `<span class="${cls}" title="${esc(tip)}">${esc(name)} <span class="nf-tag">not found</span></span>`;
+  const isObj=(a&&typeof a==="object");
+  const link=isObj? a.apple_music : null;
+  const found=isObj? a.found : null;
+  const conf=isObj? a.confidence : null;
+  const label=isObj? a.match_label : null;
+  const multi=name.startsWith("(");
+  let cls="chip"+(multi?" multi":"");
+  let tag="", tip=name;
+  if(HAS_AM && isObj){
+    const tier=(conf==null)?(found?1:0):(conf>=1?1:(conf>=0.8?2:(conf>=0.7?3:0)));
+    if(tier===2){cls+=" close";tip="Apple Music — close match, verified";}
+    else if(tier===3){cls+=" review";tip="Apple Music — needs review";}
+    else if(tier===0){cls+=" nf";tip="No confident Apple Music match";}
+    else tip="Apple Music — exact match";
+    if(label) tip="Apple Music: "+label;
+    const pct=found?Math.round((conf==null?1:conf)*100):0;
+    tag=tier===2?" ≈"+pct+"%":(tier===3?" ⚠":(tier===0?' <span class="nf-tag">not found</span>':""));
+    if(found && link) return `<a class="${cls}" href="${esc(link)}" target="_blank" title="${esc(tip)}">${esc(name)}${tag}</a>`;
+    return `<span class="${cls}" title="${esc(tip)}">${esc(name)}${tag}</span>`;
+  }
+  return `<span class="${cls}" title="${esc(tip)}">${esc(name)}</span>`;
 }
-const chips=a=> (a||[]).map(achip).join("");
+const chips=(a,supp)=> (a||[]).map(x=>achip(x,supp)).join("");
 
 function renderList(){
   const list=document.getElementById("list");
-  const f=filter.toLowerCase(), st=status;
-  let html="", lastMonth="";
-  let n=0;
+  const f=filter.toLowerCase(), st=status, c=cat;
+  let html="", lastMonth="", n=0;
   for(const s of DATA.shows){
     if(f && !JSON.stringify([s.headline_artists,s.support_artists,(s.show_title||""),(s.note||"")]).toLowerCase().includes(f)) continue;
+    if(c && s.event_type!==c) continue;
     if(st){const stt=statusOf(s).cls; if(stt!==st) continue;}
     n++;
     const mkey=s.date? s.date.slice(0,4)+"-"+s.date.slice(5,7):"????";
@@ -143,10 +165,11 @@ function renderList(){
     const stt=statusOf(s);
     const nm=anames(s.headline_artists);
     const sup=anames(s.support_artists);
-    const supAll=s.support_artists||[];
+    const g=s.event_type? `<span class="catglyph">${CATGLYPH[s.event_type]||""}</span> `:"";
+    const nf=(HAS_AM && (s.headline_artists||[]).concat(s.support_artists||[]).some(a=>aname(a)&&!a.found))?'<span class="nf-tag">♪ ?</span>':"";
     html+=`<div class="item ${cur===s? 'active':''}" data-id="${DATA.shows.indexOf(s)}">
-      <div class="name">${esc(nm)} <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓':(stt.cls==='warn'?'⚠':'✗')}</span></div>
-      <div class="meta">${s.date||'?'} ${s.show_time||''}${sup? ' · +'+esc(sup):''} ${(supAll.some(a=>aname(a)&&!a.found)|| (s.headline_artists||[]).some(a=>aname(a)&&!a.found))? '<span class="nf-tag">♪ ?</span>':''}</div>
+      <div class="name">${g}${esc(nm)} <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓':(stt.cls==='warn'?'⚠':'✗')}</span></div>
+      <div class="meta">${s.date||'?'} ${s.show_time||''}${sup? ' · +'+esc(sup):''} ${s.show_title?' · '+esc(s.show_title):''} ${nf}</div>
     </div>`;
   }
   if(!n) html=`<div class="empty">No shows match.</div>`;
@@ -155,68 +178,75 @@ function renderList(){
   document.getElementById("stat").innerHTML=`<b>${n}</b> of ${DATA.shows.length} shows`;
 }
 
-function select(i){
-  cur=i; renderList(); renderDetail();
-}
+function select(i){ cur=i; renderList(); renderDetail(); }
 
 function renderDetail(){
   const d=document.getElementById("detail");
   if(cur==null){d.innerHTML=`<div class="empty">Select a show on the left to review the extraction.</div>`;return;}
   const s=DATA.shows[cur];
   const stt=statusOf(s);
-  const head=(s.headline_artists||[]).map(achip).join("")||`<span class="val miss">— missing —</span>`;
-  const sup=(s.support_artists&&s.support_artists.length)?chips(s.support_artists):`<span class="val miss">— none listed —</span>`;
-  const title=s.show_title?`<div class="val">${esc(s.show_title)}</div>`:`<span class="val miss">— not named —</span>`;
-  const pres=(s.presenters&&s.presenters.length)?s.presenters.map(a=>`<span class="chip">${esc(a)}</span>`).join(""):'';
-  const fmt=s.set_format?`<div class="val">${esc(s.set_format)}</div>`:``;
-  const note=s.note?`<p style="font-size:12px;color:var(--warn);margin:10px 0 0">⚠ ${esc(s.note)}</p>`:``;
-  const notFound=[...(s.headline_artists||[]),...(s.support_artists||[])].filter(a=>aname(a)&&!a.found).map(a=>aname(a));
-  const review=[...(s.headline_artists||[]),...(s.support_artists||[])].filter(a=>aname(a)&&a.found&&a.match_label).map(a=>aname(a)+(a.match_label?` (${a.match_label.replace(/^close match: |^needs review: /,"")})`:""));
-  const nfLine=notFound.length?`<p style="font-size:12px;color:var(--mut);margin:8px 0 0">🔍 No Apple Music match for: ${notFound.map(esc).join(", ")}</p>`:``;
-  const rvLine=review.length?`<p style="font-size:12px;color:var(--warn);margin:4px 0 0">⚠ Near-match (please verify): ${review.map(esc).join(", ")}</p>`:``;
-  const row=(lbl,val,ok)=>`<div><div class="lbl">${lbl} ${ok!==undefined?`<span class="match ${ok}">${ok==='ok'?'captured':'check'}</span>`:''}</div>
-      <div class="val ${val?'':'miss'}">${esc(val)}</div></div>`;
+  const head=(s.headline_artists||[]).map(a=>achip(a,false)).join("")||`<span class="val miss">— missing —</span>`;
+  const sup=(s.support_artists&&s.support_artists.length)?chips(s.support_artists,true):`<span class="val miss">— none listed —</span>`;
+  const title=s.show_title?`<div class="val">${esc(s.show_title)}</div>`:"";
+  const pres=(s.presenters&&s.presenters.length)?s.presenters.map(a=>`<span class="chip">${esc(a)}</span>`).join(""):"";
+  const fmt=s.set_format?`<span style="font-size:13px;color:var(--mut)">(${esc(s.set_format)})</span>`:"";
+  const note=s.note?`<p style="font-size:12px;color:var(--warn);margin:10px 0 0">⚠ ${esc(s.note)}</p>`:"";
+  const desc=s.description?`<div class="lbl" style="margin-top:12px">Description (from site)</div><div class="desc">${esc(s.description)}</div>`:"";
+  const tstat=s.ticket_status?`<span class="match ${s.ticket_status.toLowerCase().includes("sold")?"bad":"ok"}">${esc(s.ticket_status)}</span>`:"";
+  const row=(lbl,val)=>`<div><div class="lbl">${lbl}</div><div class="val ${val?"":"miss"}">${esc(val)||"—"}</div></div>`;
+  const catChip=s.event_type?`<span class="cat ${s.event_type}">${s.event_type}</span>`:"";
   d.innerHTML=`
    <div class="dhead">
-     <h2>${esc(anames(s.headline_artists)||"?")} ${s.set_format?`<span style="font-size:13px;color:var(--mut)">(${esc(s.set_format)})</span>`:""}</h2>
+     <h2>${esc(anames(s.headline_artists)||"?")} ${fmt} ${catChip}</h2>
      <div class="bill">${esc(s.show_title||"")}</div>
    </div>
-   <div class="legend">Extraction status: <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓ complete':'⚠ review'}</span> ${stt.label!=='complete'?('— needs check: '+esc(stt.label)):''}</div>
+   <div class="legend">Extraction status: <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓ complete':(stt.cls==='warn'?'⚠':'✗')}</span>
+     ${stt.label!=='complete'?('— '+esc(stt.label)):''}</div>
    <div class="card"><h3>My extraction</h3>
      <div class="grid">
-       <div><div class="lbl">Headliner(s) <span class="lbl-sub">· ♪ links to Apple Music</span></div>${head}</div>
+       <div><div class="lbl">Headliner(s) ${HAS_AM?'<span class="lbl-sub">· ♪ links to Apple Music</span>':""}</div>${head}</div>
        <div><div class="lbl">Support</div>${sup}</div>
-       <div><div class="lbl">Show / Tour title</div>${title}</div>
-       ${s.presenters&&s.presenters.length?`<div><div class="lbl">Presenter</div>${pres}</div>`:``}
+       ${title?`<div><div class="lbl">Show / Tour title</div>${title}</div>`:""}
+       ${pres?`<div><div class="lbl">Presenter</div>${pres}</div>`:""}
        ${row("Date", s.date||"")} ${row("Doors", s.doors||"")}
-       ${row("Show time", s.show_time||"")} ${row("Tickets", s.ticket_link?"available":"")}
+       ${row("Show time", s.show_time||"")} ${row("Tickets", tstat || (s.ticket_link?"available":""))}
+       ${s.age_rating?row("Ages", s.age_rating):""}
      </div>
-     ${note}
-     ${nfLine}
-     ${rvLine}
-     ${s.ticket_link?`<a class="btn" target="_blank" href="${esc(s.ticket_link)}">Buy tickets →</a>
-     <a class="plain" target="_blank" href="${esc(s.event_page)}" style="margin-left:10px">Open on website →</a>`:""}
+     ${note} ${desc}
+     ${(s.ticket_link||s.event_page)?`<div>
+       ${s.ticket_link?`<a class="btn" target="_blank" href="${esc(s.ticket_link)}">Buy tickets →</a>`:""}
+       ${s.event_page?`<a class="plain" target="_blank" href="${esc(s.event_page)}" style="margin-left:10px">Open on website →</a>`:""}
+     </div>`:""}
    </div>
    <div class="card"><h3>Verify against the source</h3>
      <div class="grid">
        ${row("Date on site","open page")} ${row("Times on site","open page")}
-       ${row("Support on site","open page")} ${row("Ticket link on site","open page")}
+       ${row("Support on site","open page")} ${row("Ticket status on site","open page")}
      </div>
-     <a class="btn" target="_blank" href="${esc(s.event_page)}">Open source event page →</a>
+     ${s.event_page?`<a class="btn" target="_blank" href="${esc(s.event_page)}">Open source event page →</a>`:""}
      <p style="font-size:12px;color:var(--mut);margin-top:12px">
-       Compare the values above to the source page. If anything differs (an artist, a time, or the ticket link),
-       tell me and I'll correct the extraction.</p>
+       Compare the values above to the source page. ${s.event_type?("The type ("+s.event_type+") is derived from the page text — flag anything mislabeled. "):""}
+       If anything differs (an artist, a time, a link), tell me and I'll correct the extraction.</p>
    </div>`;
 }
 
 document.getElementById("search").oninput=e=>{filter=e.target.value;renderList();};
 document.getElementById("status").onchange=e=>{status=e.target.value;renderList();};
 document.getElementById("srcsub").textContent=`${DATA.venue} · ${DATA.count} shows · source ${DATA.source_url} · captured ${DATA.scraped_at}`;
+document.getElementById("vname").textContent=DATA.venue;
 document.getElementById("raw").href="shows.json";
-if(DATA.apple_music_stats){
-  const a=DATA.apple_music_stats;
+if(HAS_AM){
+  const a=AM;
   document.getElementById("amstat").innerHTML=`♪ Apple Music: <b>${a.exact}</b> exact · <b>${a.close}</b> close · ${a.needs_review} review · <b>${a.not_found}</b> not found (of ${a.unique_artists})`;
+} else {
+  document.getElementById("amstat").style.display="none";
 }
+// type filter — only for venues that carry event_type counts
+const catf=document.getElementById("catf");
+if(TYPES && Object.keys(TYPES).length){
+  catf.innerHTML='<option value="">All types</option>'+Object.keys(TYPES).map(c=>`<option value="${c}">${c}</option>`).join("");
+  catf.onchange=e=>{cat=e.target.value;renderList();};
+} else catf.style.display="none";
 renderList();
 </script>
 </body>

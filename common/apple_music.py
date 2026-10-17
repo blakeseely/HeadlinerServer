@@ -1,29 +1,27 @@
-#!/usr/bin/env python3
-"""Apple Music lookup for every artist in data/shows.json.
+"""Apple Music matching — shared confidence engine + record shaping.
 
-For each unique (non-placeholder) artist name, queries the iTunes Search API
-(entity=musicArtist) and scores the returned candidates:
+Moved from independent/ (was itunes_lookup.py + the artist_obj block in
+build.py). Venue-agnostic: venues with Apple Music matching load their
+lookup cache and call artist_obj(); the confidence engine and the LINK_FLOOR
+safety rule live here exactly once, for every venue.
 
-  * exact     -- catalog artistName == billed name (case/accent/@/paren
-                 normalized) -> confidence 1.0
-  * likely    -- no exact, but the best candidate is a close variant
-                 ("The Westones" vs "Westones", "Nick Cheo" vs "@NICKCHEO",
-                 a '& the Band' tail, an '(of X)' qualifier, a surname
-                 extension like "Ray and Paul" -> "Ray and Paul Holmberg").
-                 Confidence is a 0..1 fuzzy score.
-  * no_exact  -- nothing plausibly close -> link None (not found).
-
-Results are checkpointed to the output JSON after every artist so a rerun
-resumes where it left off.
+Cache format (venue cache/lookup.json):
+    { "<normalized artist name>": {link, matched, confidence, status} }
+    status: exact | likely | maybe | no_exact | error
 """
-import json, time, urllib.request, urllib.parse, re, os, sys, unicodedata
+import json, os, re, unicodedata
 from difflib import SequenceMatcher
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(ROOT, "data", "shows.json")
-OUT = os.path.join(ROOT, "cache", "itunes.json")
+# Only auto-link a fuzzy (non-exact) match at this confidence. Below the
+# floor the catalog entry is a similarly-named DIFFERENT act
+# (e.g. "DJ Harry Duncan" -> "Henry Lowther, Harry Beckett, Peter Duncan"):
+# unlink, but keep the near-miss name + score so a human can eyeball it.
+LINK_FLOOR = 0.80
 
 
+# --------------------------------------------------------------------------
+# Normalization helpers
+# --------------------------------------------------------------------------
 def norm(s):
     s = re.sub(r"\s+", " ", s or "").strip().lower()
     s = s.replace("\u2019", "'").replace("\u2018", "'")
@@ -43,8 +41,15 @@ def strip_paren(s):
     return re.sub(r"\([^()]*\)", " ", s)
 
 
-TAIL_RE = re.compile(r"\s*(?:&|and)\s+[^&]+$")
+def cache_key(name):
+    """Cache key for a billed name: normalized + accentless."""
+    return norm_accentless(name)
 
+
+# --------------------------------------------------------------------------
+# Confidence engine (moved verbatim from independent's itunes_lookup.py)
+# --------------------------------------------------------------------------
+TAIL_RE = re.compile(r"\s*(?:&|and)\s+[^&]+$")
 
 def split_tail(name):
     """Billed 'X & the Band' -> lead 'x', tail 'the band'. No tail -> ('', '')."""
@@ -59,6 +64,15 @@ def lead_name(name):
     """The billed name with parentheticals and 'and/& his/the ...' tails removed."""
     lead, _ = split_tail(name)
     return strip_paren(name) if not lead else lead
+
+
+def tokens(s):
+    return set(re.findall(r"[a-z0-9]+", strip_paren(s).lower()))
+
+
+STOPWORDS = {"the", "a", "an", "and", "&"}
+EXTRA_OK = {"live", "dj", "solo", "acoustic", "band"}
+DESCRIPTIVE = {"band", "group", "crew", "rock", "soul", "jazz", "funk", "steady"}
 
 
 def _is_descriptive(tail):
@@ -112,30 +126,6 @@ def _score_bases(name):
             seen.add(k)
             out.append(v)
     return out
-
-
-def confidence(query, cand):
-    """Best score across all scoring-bases of the billed name vs the candidate."""
-    q = norm_accentless(query)
-    c = norm_accentless(cand)
-    # A solo DJ is a one-act billing; a multi-person band entry sharing a
-    # first name ("harry" in "Henry Lowther, Harry Beckett, Peter Duncan")
-    # is a DIFFERENT act. Keyed on the original billed name so the DJ-stripped
-    # variant ("harry duncan") can't slip past it.
-    if re.match(r"^dj\b", q):
-        ct = tokens(c)
-        if len(ct) > 1 and "dj" not in ct:
-            return 0.0
-    return max(score_pair(b, cand) for b in _score_bases(query))
-
-
-def tokens(s):
-    return set(re.findall(r"[a-z0-9]+", strip_paren(s).lower()))
-
-
-STOPWORDS = {"the", "a", "an", "and", "&"}
-EXTRA_OK = {"live", "dj", "solo", "acoustic", "band"}
-DESCRIPTIVE = {"band", "group", "crew", "rock", "soul", "jazz", "funk", "steady"}
 
 
 def score_pair(query, cand):
@@ -213,7 +203,26 @@ def score_pair(query, cand):
     return round(SequenceMatcher(None, q, c).ratio(), 3)
 
 
+def confidence(query, cand):
+    """Best score across all scoring-bases of the billed name vs the candidate."""
+    q = norm_accentless(query)
+    c = norm_accentless(cand)
+    # A solo DJ is a one-act billing; a multi-person band entry sharing a
+    # first name ("harry" in "Henry Lowther, Harry Beckett, Peter Duncan")
+    # is a DIFFERENT act. Keyed on the original billed name so the DJ-stripped
+    # variant ("harry duncan") can't slip past it.
+    if re.match(r"^dj\b", q):
+        ct = tokens(c)
+        if len(ct) > 1 and "dj" not in ct:
+            return 0.0
+    return max(score_pair(b, cand) for b in _score_bases(query))
+
+
+# --------------------------------------------------------------------------
+# API lookup (driver helpers; main() in lookup.py uses these)
+# --------------------------------------------------------------------------
 def search(term):
+    import time, urllib.parse, urllib.request
     url = "https://itunes.apple.com/search?" + urllib.parse.urlencode(
         {"term": term, "media": "music", "entity": "musicArtist", "limit": 15})
     data = None
@@ -222,7 +231,7 @@ def search(term):
             with urllib.request.urlopen(url, timeout=10) as r:
                 data = json.loads(r.read().decode())
             break
-        except Exception as e:
+        except Exception:
             if attempt == 2:
                 return None
             time.sleep(2.0)
@@ -284,46 +293,123 @@ def lookup(artist):
     return {"link": link, "matched": bestc, "confidence": best, "status": status}
 
 
-def main():
-    force = "--full" in sys.argv
-    d = json.load(open(SRC))
-    names = []
-    for s in d["shows"]:
-        for a in s.get("headline_artists", []) + s.get("support_artists", []):
-            names.append(a["name"] if isinstance(a, dict) else str(a))
-    uniq = list(dict.fromkeys(names))
-    real = [n for n in uniq if not n.startswith("(")]
-
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    out = {}
-    if os.path.exists(OUT):
-        try:
-            out = json.load(open(OUT))
-        except Exception:
-            out = {}
-
-    done = lambda a: (a in out and out[a].get("status") in ("exact", "likely", "maybe", "no_exact"))
-    todo = [a for a in real if (force or not done(a))]
-    if force:
-        out = {}  # full re-run: start the cache clean
-    print(f"total {len(real)} real artists, {len(real)-len(todo)} cached, {len(todo)} to fetch", flush=True)
-
-    import concurrent.futures
-    results = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
-        futs = {ex.submit(lookup, a): a for a in todo}
-        for fut in concurrent.futures.as_completed(futs):
-            results[futs[fut]] = fut.result()
-
-    for i, a in enumerate(todo):
-        out[a] = results[a]
-        if (i + 1) % 10 == 0 or i + 1 == len(todo):
-            json.dump(out, open(OUT, "w"), indent=2, ensure_ascii=False)
-    json.dump(out, open(OUT, "w"), indent=2, ensure_ascii=False)
-
-    from collections import Counter
-    print("DONE:", dict(Counter(out[a]["status"] for a in real)))
+# --------------------------------------------------------------------------
+# Record shaping + stats (shared by every venue build)
+# --------------------------------------------------------------------------
+def _tail(name):
+    """Billed 'X & the Band' -> 'x' (lead, paren/tail stripped); '' if no tail."""
+    s = re.sub(r"\([^()]*\)", " ", name)
+    s = re.sub(r"\s+", " ", s).strip().lower().replace("\u2019", "'")
+    m = re.search(r"\s*(?:&|and)\s+[^&]+$", s)
+    if m and m.start() > 0:
+        return s[:m.start()].strip()
+    return s
 
 
-if __name__ == "__main__":
-    main()
+def artist_obj(name, cache):
+    """An artist as a structured record: name + Apple Music link + confidence.
+
+    cache maps cache_key(name) -> {link, matched, confidence, status}:
+      exact   -> found, confidence 1.0
+      likely  -> found, close match (0.8-0.99); matched names the catalog artist
+      maybe   -> found, plausible but ambiguous (0.7-0.79); needs_review
+      no_exact-> not found (link None)
+    Placeholder names (starting with '(') are never looked up.
+    """
+    if name.startswith("("):  # placeholder like (Multiple Artists)
+        return {"name": name, "apple_music": None, "found": False,
+                "confidence": None, "matched": None, "match_label": None}
+    r = cache.get(cache_key(name)) or {}
+    link = r.get("link")
+    found = bool(link)
+    conf = r.get("confidence")
+    matched = r.get("matched")
+    label = None
+    if found and conf is not None and conf < LINK_FLOOR:
+        found = False
+        link = None
+        label = f"no confident match (closest: {matched} @ {round(conf*100)}%)"
+    elif found and matched:
+        m = re.sub(r"\s+", " ", matched).strip().lower()
+        n = re.sub(r"\s+", " ", name).strip().lower()
+        if m != n:
+            ql = _tail(name).lower() or None
+            if conf == 1.0 or m == (ql or "").lower():
+                label = None  # catalog entry is the billed lead name: clean
+            elif conf >= 0.95:
+                label = None  # high-confidence variant spelling; link verified
+            else:
+                label = "close match: " + matched
+    return {"name": name,
+            "apple_music": link if found else None,
+            "found": found,
+            "confidence": conf,
+            "matched": matched if found else None,
+            "match_label": label}
+
+
+def plain_artist(name):
+    """Artist record for venues WITHOUT Apple Music matching: plain name only
+    (same shape, match fields null)."""
+    return {"name": name, "apple_music": None, "found": False,
+            "confidence": None, "matched": None, "match_label": None}
+
+
+def load_lookup_cache(path):
+    """Load a venue's cache/lookup.json keyed by cache_key(name)."""
+    if not os.path.exists(path):
+        return {}
+    try:
+        raw = json.load(open(path))
+    except Exception:
+        return {}
+    return {cache_key(k): v for k, v in raw.items()}
+
+
+def apple_music_stats(shows):
+    """Shared stats block over shows with Apple Music-matched artist records."""
+    all_artists = [a for s in shows for a in s["headline_artists"] + s["support_artists"]]
+    by_name = {}
+    for a in all_artists:
+        by_name.setdefault(a["name"], a)
+    st = {
+        "unique_artists": len(by_name),
+        "found": sum(1 for a in by_name.values() if a["found"]),
+        "exact": sum(1 for a in by_name.values() if a["found"] and a.get("confidence") == 1.0 and not a.get("match_label")),
+        "close": sum(1 for a in by_name.values()
+                     if a["found"] and isinstance(a.get("confidence"), (int, float))
+                     and 0 <= a["confidence"] < 1.0),
+        "needs_review": sum(1 for a in by_name.values() if a["found"] and a.get("match_label")),
+        "not_found": sum(1 for a in by_name.values() if not a["found"]),
+    }
+    # needs_review == the close matches that carry a "close match: X" label
+    # (the ones a human should eyeball); the unlabeled close matches are
+    # treated as clean links and folded into `close` for the display.
+    st["close"] -= st["needs_review"]
+    return st
+
+
+WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def date_label(iso):
+    """'Fri 2026-10-16' style label for the reviewer; None without a date."""
+    if not iso:
+        return None
+    import datetime
+    return f"{WEEKDAYS[datetime.date.fromisoformat(iso).weekday()]} {iso}"
+
+
+def shows_json(venue, venue_id, venue_url, source_url, shows, stats):
+    """The shared top-level JSON document for every venue's data/shows.json."""
+    import datetime
+    return {"venue": venue, "venue_id": venue_id, "venue_url": venue_url,
+            "source_url": source_url,
+            "scraped_at": datetime.date.today().isoformat(),
+            "count": len(shows), "shows": shows, "stats": stats}
+
+
+def write_shows(path, doc):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(doc, f, indent=2, ensure_ascii=False)

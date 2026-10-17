@@ -31,13 +31,14 @@ VENUES = {
 def venue_pills(key, data):
     """Human stat pills per venue, derived from its data/shows.json."""
     pills = []
-    st = data.get("event_type_stats")
-    if st:  # Castro-style: category breakdown
+    st = data.get("stats") or {}
+    et = st.get("event_types")
+    if et:  # category breakdown (e.g. Castro: music/film/comedy/other)
         for cat in ("music", "film", "comedy", "other"):
-            if st.get(cat):
-                pills.append(f"{cat} <b>{st[cat]}</b>")
-    am = data.get("apple_music_stats")
-    if am:  # Independent-style: Apple Music match breakdown
+            if et.get(cat):
+                pills.append(f"{cat} <b>{et[cat]}</b>")
+    am = st.get("apple_music")
+    if am:  # Apple Music match breakdown (e.g. Independent)
         pills.append(f"Apple Music <b>{am.get('exact', 0)}</b> exact / {am.get('close', 0)} close")
         if am.get("needs_review"):
             pills.append(f"<b>{am['needs_review']}</b> needs review")
@@ -62,7 +63,9 @@ def build_picker():
 
 
 def venue_viewer(key):
-    tpl = open(os.path.join(VENUES[key]["venue_dir"], "viewer", "index.html")).read()
+    # ONE shared viewer for every venue (common/); the venue's JSON is
+    # injected, and the page adapts to whatever fields that venue carries.
+    tpl = open(os.path.join(ROOT, "common", "viewer", "index.html")).read()
     data = open(os.path.join(VENUES[key]["venue_dir"], "data", "shows.json")).read()
     return tpl.replace("/*__SHOWS_PAYLOAD__*/", "window.SHOWS=" + data + ";")
 

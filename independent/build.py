@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Build data/shows.json for the independent-sf project.
+"""Build data/shows.json for The Independent SF (venue adapter).
 
-Reads the raw per-event capture (cache/vfinal.json: <title> tag + event-column
-lines + doors/show/buy/ticket link) and produces the normalized show records:
-
-  headline_artists, support_artists, multi_artist, show_title, presenters,
-  set_format, note, date, doors, show_time, ticket_link, event_page
+Venue-specific part of the shared pipeline: reads the raw per-event capture
+(cache/vfinal.json: <title> tag + event-column lines + doors/show/buy/ticket
+link) and maps each event into the shared show shape, then hands the batch to
+common.build.run_build().
 
 Heuristics (see parse_title):
   * The venue's <title> tag is the canonical, properly-cased source.
@@ -18,18 +17,36 @@ Heuristics (see parse_title):
   * Lines above the bill on the page -> presenter ("X PRESENTS") or tour name.
 
 Genuinely ambiguous titles (artist + undelimited tour name, or a multi-artist
-variety show) are pinned in OVERRIDES below — this is intentional, since a pure
-heuristic cannot reliably recover "Swervedriver" from "Swervedriver Raise at 35".
+variety show) are pinned in OVERRIDES below — this is intentional, since a
+pure heuristic cannot reliably recover "Swervedriver" from "Swervedriver
+Raise at 35".
+
+Shared parts (one copy, in common/):
+  * apple_music.artist_obj()  — the Apple Music confidence-tiered records
+  * apple_music_stats()       — the ♪ stats block (lives in stats.apple_music)
+  * build.show()/run_build()  — record shape, sort, JSON writer
+
+Apple Music cache: cache/lookup.json, produced by running
+  python3 ../../common/lookup.py [--full]        (from this directory)
+from a previous run it may still be named itunes.json — build() falls back
+to that name if lookup.json is absent.
 """
-import os, re, json, datetime
+import os, re, sys, json, datetime
 from collections import Counter
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))  # repo root -> `import common`
+from common import apple_music
+from common import build as common_build
+
+ROOT = HERE
 SRC = os.path.join(ROOT, "cache", "vfinal.json")
 DST = os.path.join(ROOT, "data", "shows.json")
-ITUNES_CACHE = os.path.join(ROOT, "cache", "itunes.json")
+LOOKUP_CACHE = os.path.join(ROOT, "cache", "lookup.json")
+LEGACY_CACHE = os.path.join(ROOT, "cache", "itunes.json")  # pre-refactor name
 
-VENUE = "The Independent SF"
+VENUE = "The Independent"
+VENUE_ID = "independent"
 SRC_URL = "https://www.theindependentsf.com/"
 MONTHS = {m: i + 1 for i, m in enumerate(
     ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"])}
@@ -39,85 +56,16 @@ ANNOUNCE = re.compile(
 SET_TOKEN = re.compile(r"^(live|dj|solo|acoustic)$", re.I)
 
 
-def load_itunes():
-    if not os.path.exists(ITUNES_CACHE):
+def load_lookup():
+    """Load the Apple Music lookup cache (common format) keyed for artist_obj."""
+    path = LOOKUP_CACHE if os.path.exists(LOOKUP_CACHE) else LEGACY_CACHE
+    if not os.path.exists(path):
         return {}
     try:
-        raw = json.load(open(ITUNES_CACHE))
+        raw = json.load(open(path))
     except Exception:
         return {}
-    import unicodedata
-    def nk(s):
-        s = re.sub(r"\s+", " ", s).strip().lower()
-        s = s.replace("\u2019", "'").replace("\u2018", "'")
-        if s.startswith("@"):
-            s = s[1:]
-        return "".join(c for c in unicodedata.normalize("NFD", s) if not unicodedata.combining(c))
-    return {nk(k): v for k, v in raw.items()}
-
-
-def _tail(name):
-    """Billed 'X & the Band' -> 'x' (lead, paren/tail stripped); '' if no tail."""
-    import unicodedata
-    s = re.sub(r"\([^()]*\)", " ", name)
-    s = re.sub(r"\s+", " ", s).strip().lower().replace("\u2019", "'")
-    m = re.search(r"\s*(?:&|and)\s+[^&]+$", s)
-    if m and m.start() > 0:
-        return s[:m.start()].strip()
-    return s
-
-
-def artist_obj(name, cache):
-    """An artist as a structured record: name + Apple Music link + confidence.
-
-    cache values carry {link, matched, confidence, status}:
-      exact   -> found, confidence 1.0
-      likely  -> found, close match (0.8-0.99); matched names the catalog artist
-      maybe   -> found, plausible but ambiguous (0.7-0.79); needs_review
-      no_exact-> not found (link None)
-    Placeholder names (starting with '(') are never looked up.
-    """
-    import unicodedata
-    if name.startswith("("):  # placeholder like (Multiple Artists)
-        return {"name": name, "apple_music": None, "found": False,
-                "confidence": None, "matched": None, "match_label": None}
-    k = re.sub(r"\s+", " ", name).strip().lower().replace("\u2019", "'").replace("\u2018", "'")
-    if k.startswith("@"):
-        k = k[1:]
-    k = "".join(c for c in unicodedata.normalize("NFD", k) if not unicodedata.combining(c))
-    r = cache.get(k) or {}
-    link = r.get("link")
-    found = bool(link)
-    conf = r.get("confidence")
-    matched = r.get("matched")
-    label = None
-    # Only auto-link a fuzzy (non-exact) match at a trusted confidence.
-    # Below LINK_FLOOR the catalog entry is a similarly-named DIFFERENT act
-    # (e.g. "DJ Harry Duncan" -> "Henry Lowther, Harry Beckett, Peter Duncan",
-    # or "Live on the Stoop" -> "Slightly Stoopid"): unlink, but keep the
-    # near-miss name + score so a human can eyeball it.
-    LINK_FLOOR = 0.80
-    if found and conf is not None and conf < LINK_FLOOR:
-        found = False
-        link = None
-        label = f"no confident match (closest: {matched} @ {round(conf*100)}%)"
-    elif found and matched:
-        m = re.sub(r"\s+", " ", matched).strip().lower()
-        n = re.sub(r"\s+", " ", name).strip().lower()
-        if m != n:
-            ql = _tail(name).lower() or None
-            if conf == 1.0 or m == (ql or "").lower():
-                label = None  # catalog entry is the billed lead name: clean
-            elif conf >= 0.95:
-                label = None  # high-confidence variant spelling; link verified
-            else:
-                label = "close match: " + matched
-    return {"name": name,
-            "apple_music": link if found else None,
-            "found": found,
-            "confidence": conf,
-            "matched": matched if found else None,
-            "match_label": label}
+    return {apple_music.cache_key(k): v for k, v in raw.items()}
 
 
 def key(s):
@@ -280,7 +228,7 @@ def classify_tour_line(line):
 
 def main():
     events = json.load(open(SRC))
-    itunes = load_itunes()
+    lookup = load_lookup()
     today = datetime.date.today().isoformat()
     base_year = datetime.date.today().year
     shows = []
@@ -330,7 +278,6 @@ def main():
         pt = parse_title(ev.get("title_tag"), ev.get("name"))
 
         # support = union of page slot + bill-derived, de-duped
-        # ---- support = union of page slot + bill-derived, de-duped ----
         seen = set()
         support = []
         heads_l = [re.sub(r"\s+", " ", h).strip().lower() for h in pt["headline"]]
@@ -366,46 +313,25 @@ def main():
                 year = base_year if mon >= 10 else base_year + 1
                 iso = f"{year}-{mon:02d}-{day:02d}"
 
-        rec = {
-            "headline_artists": [artist_obj(h, itunes) for h in pt["headline"]],
-            "support_artists": [artist_obj(p, itunes) for p in support],
-            "multi_artist": pt["multi_artist"],
-            "show_title": pt["show_title"] or tour,
-            "presenters": [presenter] if presenter else [],
-            "set_format": pt["set_format"],
-            "date": iso,
-            "doors": ev.get("doors_raw"),
-            "show_time": ev.get("show_raw"),
-            "ticket_link": ev.get("buy_url"),
-            "event_page": ev["href"],
-        }
+        rec = common_build.show(
+            headline_artists=[apple_music.artist_obj(h, lookup) for h in pt["headline"]],
+            support_artists=[apple_music.artist_obj(p, lookup) for p in support],
+            multi_artist=pt["multi_artist"],
+            show_title=pt["show_title"] or tour,
+            presenters=[presenter] if presenter else [],
+            set_format=pt["set_format"],
+            date=iso,
+            doors=ev.get("doors_raw"),
+            show_time=ev.get("show_raw"),
+            ticket_link=ev.get("buy_url"),
+            event_page=ev["href"],
+        )
         if pt["note"]:
             rec["note"] = pt["note"]
         shows.append(rec)
 
-    all_artists = [a for s in shows for a in s["headline_artists"] + s["support_artists"]]
-    uniq_names = {a["name"] for a in all_artists}
-    by_name = {}
-    for a in all_artists:
-        by_name.setdefault(a["name"], a)
-    st = {
-        "unique_artists": len(uniq_names),
-        "found": sum(1 for a in by_name.values() if a["found"]),
-        "exact": sum(1 for a in by_name.values() if a["found"] and a.get("confidence") == 1.0 and not a.get("match_label")),
-        "close": sum(1 for a in by_name.values() if a["found"] and a.get("confidence") is not None and 0 <= a["confidence"] < 1.0),
-        "needs_review": sum(1 for a in by_name.values() if a["found"] and a.get("match_label")),
-        "not_found": sum(1 for a in by_name.values() if not a["found"]),
-    }
-    # needs_review == the close matches that carry a "close match: X" label
-    # (the ones a human should eyeball); the unlabeled close matches are
-    # treated as clean links and folded into `close` for the display.
-    st["close"] -= st["needs_review"]
-    final = {"venue": VENUE, "venue_url": SRC_URL, "source_url": SRC_URL,
-             "scraped_at": today, "count": len(shows), "shows": shows,
-             "apple_music_stats": st}
-    os.makedirs(os.path.dirname(DST), exist_ok=True)
-    with open(DST, "w") as f:
-        json.dump(final, f, indent=2, ensure_ascii=False)
+    stats = {"apple_music": apple_music.apple_music_stats(shows)}
+    common_build.run_build(VENUE, VENUE_ID, SRC_URL, SRC_URL, shows, stats)
 
     print(f"built {len(shows)} shows -> {DST}")
     print("years:", dict(Counter(s["date"][:4] for s in shows if s["date"])))
@@ -423,7 +349,7 @@ def main():
                   f"sup:{[a['name'] for a in s['support_artists']]} | "
                   f"title:{s['show_title']} | fmt:{s['set_format']} | "
                   f"pres:{s['presenters']} | note:{s.get('note')} | multi:{s['multi_artist']} | {s['date']}")
-    st = final["apple_music_stats"]
+    st = stats["apple_music"]
     print(f"\nApple Music: {st['found']}/{st['unique_artists']} unique artists found, "
           f"{st['not_found']} not found (placeholder + no exact match)")
 

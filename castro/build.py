@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build data/shows.json for the Castro Theatre project (thecastro.com).
+"""Build data/shows.json for The Castro Theatre (venue adapter, thecastro.com).
 
-Inputs (cache/):
+Venue-specific part of the shared pipeline. Inputs (cache/):
   calendar.json  fetch_calendar.py output — one record per calendar card
                  (title, start, doors/show times, topline/bottomline,
                  ticket link + status).
@@ -31,21 +31,27 @@ So the cascade is (first hit wins):
   7. default                              -> music; needs_review when the
                                              body is only the generic stub.
 
-No Apple Music matching (per request); artist objects are plain {name}
-records. The shared viewer renders both shapes.
+No Apple Music matching (per request): artist records are plain-name objects
+(common.apple_music.plain_artist); the shared viewer renders them without
+link/chip tiers. The show shape, stats block, sort, and JSON writer come
+from common.build.
 """
-import os, re, json, datetime
+import os, re, sys, json, datetime
 from collections import Counter
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))  # repo root -> `import common`
+from common import apple_music
+from common import build as common_build
+
+ROOT = HERE
 CAL = os.path.join(ROOT, "cache", "calendar.json")
 DET = os.path.join(ROOT, "cache", "details.json")
 DST = os.path.join(ROOT, "data", "shows.json")
 
 VENUE = "The Castro Theatre"
+VENUE_ID = "castro"
 SRC_URL = "https://thecastro.com/calendar/"
-
-WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 # Venue stamps that appear ONLY on movie screenings (desc or topline).
 FILM_STAMP_RE = re.compile(
@@ -91,6 +97,15 @@ def classify(title, desc, bio, topline, bottomline):
     return "music", needs_review
 
 
+# Titles where the naive "Artist: ShowTitle" split is wrong — the colon is
+# part of the work's own name. Pinned like the Independent's OVERRIDES.
+NAME_OVERRIDES = {
+    "2001: A Space Odyssey": ("2001: A Space Odyssey", None),
+    "Sleepaway Camp: The Midnight Mass Experience":
+        ("Sleepaway Camp", "The Midnight Mass Experience"),
+}
+
+
 def split_name_title(title):
     """'Artist: ShowTitle' -> (name, title); else (title, None).
 
@@ -115,14 +130,6 @@ def split_name_title(title):
         return t, None
     return lead, rest.rstrip("!. ") or None
 
-
-# Titles where the naive "Artist: ShowTitle" split is wrong — the colon is
-# part of the work's own name. Pinned like the Independent's OVERRIDES.
-NAME_OVERRIDES = {
-    "2001: A Space Odyssey": ("2001: A Space Odyssey", None),
-    "Sleepaway Camp: The Midnight Mass Experience":
-        ("Sleepaway Camp", "The Midnight Mass Experience"),
-}
 
 SUPPORT_PREFIX_RE = re.compile(
     r"^(in|a|an|the|hosted|featuring|ft\.?\b|by|directed)\b", re.I)
@@ -215,21 +222,19 @@ def main():
 
         iso, _ = parse_date(r.get("start"))
 
-        rec = {
-            "event_type": cat,
-            "needs_review": bool(review),
-            "headline_artists": [{"name": h} for h in head],
-            "support_artists": [{"name": s} for s in support],
-            "show_title": show_title,
-            "date": iso,
-            "doors": r.get("doors"),
-            "show_time": (r.get("show_time") or "").replace("Show:", "").strip() or None,
-            "ticket_link": r.get("ticket_link"),
-            "ticket_status": r.get("ticket_status"),
-            "event_page": r.get("url"),
-        }
-        if iso:
-            rec["date_label"] = f"{WEEKDAYS[datetime.date.fromisoformat(iso).weekday()]} {iso}"
+        rec = common_build.show(
+            event_type=cat,
+            needs_review=bool(review),
+            headline_artists=[apple_music.plain_artist(h) for h in head],
+            support_artists=[apple_music.plain_artist(s) for s in support],
+            show_title=show_title,
+            date=iso,
+            doors=r.get("doors"),
+            show_time=(r.get("show_time") or "").replace("Show:", "").strip() or None,
+            ticket_link=r.get("ticket_link"),
+            ticket_status=r.get("ticket_status"),
+            event_page=r.get("url"),
+        )
         ar = age_rating(desc, bio)
         if ar:
             rec["age_rating"] = ar
@@ -248,21 +253,10 @@ def main():
             rec["description"] = body[:1200]
         shows.append(rec)
 
-    shows.sort(key=lambda s: (s.get("date") or "9999", s.get("doors") or ""))
-    by_type = dict(Counter(s["event_type"] for s in shows))
-    final = {
-        "venue": VENUE,
-        "venue_url": SRC_URL,
-        "source_url": SRC_URL,
-        "scraped_at": datetime.date.today().isoformat(),
-        "count": len(shows),
-        "shows": shows,
-        "event_type_stats": by_type,
-    }
-    os.makedirs(os.path.dirname(DST), exist_ok=True)
-    with open(DST, "w") as f:
-        json.dump(final, f, indent=2, ensure_ascii=False)
+    stats = {"event_types": dict(Counter(s["event_type"] for s in shows))}
+    common_build.run_build(VENUE, VENUE_ID, SRC_URL, SRC_URL, shows, stats)
 
+    by_type = stats["event_types"]
     print(f"built {len(shows)} shows -> {DST}")
     print("types:", by_type, "| needs_review:", sum(1 for s in shows if s["needs_review"]))
     print("no date:", sum(1 for s in shows if not s.get("date")),
