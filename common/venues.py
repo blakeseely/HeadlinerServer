@@ -68,6 +68,15 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "augusthall": {
+        "key": "augusthall",
+        "name": "August Hall",
+        "city": "San Francisco, CA",
+        "dir": os.path.join(ROOT, "augusthall"),
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "events.json",
+    },
 }
 
 

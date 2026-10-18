@@ -13,6 +13,7 @@ for every venue; each theater is a thin adapter on top of it.
 | [`fillmore/`](fillmore/) | The Fillmore, SF | thefillmore.com | `:8050/fillmore/` | music (site "Arts & Theatre" segment = comedy/variety → `other`); Apple Music matching on all |
 | [`gamh/`](gamh/) | Great American Music Hall, SF | greatmusichall.com | `:8050/gamh/` | music (festival/awards/poetry/Christmas bills → `other`); support acts from each show's detail page; Apple Music matching on all |
 | [`regency/`](regency/) | The Regency Ballroom, SF | theregencyballroom.com (AEG/AXS blob feed) | `:8050/regency/` | music (all bills); one unauthenticated AEG JSON GET = the whole calendar with headliners + support pre-structured; Apple Music matching on all |
+| [`augusthall/`](augusthall/) | August Hall, SF | augusthallsf.com (TicketWeb WordPress) | `:8050/augusthall/` | music (all bills); listing pages + per-show detail pages (plain HTML, server-side); tour titles, "with" support, and censored names handled; Apple Music matching on all |
 
 ## Layout
 
@@ -28,6 +29,7 @@ castro/              venue adapter: fetch + category classifier + build.py
 fillmore/            venue adapter: fetch (RSC payload) + bill reconciler + build.py
 gamh/                venue adapter: fetch (JSON-LD + detail pages) + support parser + build.py
 regency/             venue adapter: fetch (AEG/AXS public JSON feed) + build.py
+augusthall/          venue adapter: fetch (TicketWeb listing + detail pages) + title parser + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
                      + per-venue diff; --full = full Apple Music re-match)

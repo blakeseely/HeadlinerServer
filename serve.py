@@ -32,6 +32,8 @@ VENUES = {
                     "venue_dir": os.path.join(ROOT, "gamh")},
     "regency":     {"name": "The Regency Ballroom", "city": "San Francisco, CA",
                     "venue_dir": os.path.join(ROOT, "regency")},
+    "augusthall":  {"name": "August Hall", "city": "San Francisco, CA",
+                    "venue_dir": os.path.join(ROOT, "augusthall")},
 }
 
 def venue_pills(key, data):
