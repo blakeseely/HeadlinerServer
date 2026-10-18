@@ -59,6 +59,15 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "regency": {
+        "key": "regency",
+        "name": "The Regency Ballroom",
+        "city": "San Francisco, CA",
+        "dir": os.path.join(ROOT, "regency"),
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "events.json",
+    },
 }
 
 
