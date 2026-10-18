@@ -14,6 +14,7 @@ for every venue; each theater is a thin adapter on top of it.
 | [`gamh/`](gamh/) | Great American Music Hall, SF | greatmusichall.com | `:8050/gamh/` | music (festival/awards/poetry/Christmas bills → `other`); support acts from each show's detail page; Apple Music matching on all |
 | [`regency/`](regency/) | The Regency Ballroom, SF | theregencyballroom.com (AEG/AXS blob feed) | `:8050/regency/` | music (all bills); one unauthenticated AEG JSON GET = the whole calendar with headliners + support pre-structured; Apple Music matching on all |
 | [`augusthall/`](augusthall/) | August Hall, SF | augusthallsf.com (TicketWeb WordPress) | `:8050/augusthall/` | music (all bills); listing pages + per-show detail pages (plain HTML, server-side); tour titles, "with" support, and censored names handled; Apple Music matching on all |
+| [`warfield/`](warfield/) | The Warfield Theatre, SF | thewarfieldtheatre.com (AEG/AXS template) | `:8050/warfield/` | music (all bills); the /events/all listing is fully server-rendered with presenter / tour / headliner / support as separate lines (no per-detail title parsing); detail pages add doors + age; Apple Music matching on all |
 
 ## Layout
 
@@ -30,6 +31,7 @@ fillmore/            venue adapter: fetch (RSC payload) + bill reconciler + buil
 gamh/                venue adapter: fetch (JSON-LD + detail pages) + support parser + build.py
 regency/             venue adapter: fetch (AEG/AXS public JSON feed) + build.py
 augusthall/          venue adapter: fetch (TicketWeb listing + detail pages) + title parser + build.py
+warfield/            venue adapter: fetch (AEG/AXS server-rendered listing + detail pages) + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
                      + per-venue diff; --full = full Apple Music re-match)
