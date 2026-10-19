@@ -193,8 +193,9 @@ function renderDetail(){
   const fmt=s.set_format?`<span style="font-size:13px;color:var(--mut)">(${esc(s.set_format)})</span>`:"";
   const note=s.note?`<p style="font-size:12px;color:var(--warn);margin:10px 0 0">⚠ ${esc(s.note)}</p>`:"";
   const desc=s.description?`<div class="lbl" style="margin-top:12px">Description (from site)</div><div class="desc">${esc(s.description)}</div>`:"";
-  const tstat=s.ticket_status?`<span class="match ${s.ticket_status.toLowerCase().includes("sold")?"bad":"ok"}">${esc(s.ticket_status)}</span>`:"";
   const row=(lbl,val)=>`<div><div class="lbl">${lbl}</div><div class="val ${val?"":"miss"}">${esc(val)||"—"}</div></div>`;
+  const ticketVal=s.ticket_status||(s.ticket_link?"available":"");
+  const tick=ticketVal?`<span class="match ${ticketVal.toLowerCase().includes("sold")?"bad":"ok"}">${esc(ticketVal)}</span>`:"";
   const catChip=s.event_type?`<span class="cat ${s.event_type}">${s.event_type}</span>`:"";
   d.innerHTML=`
    <div class="dhead">
@@ -210,7 +211,8 @@ function renderDetail(){
        ${title?`<div><div class="lbl">Show / Tour title</div>${title}</div>`:""}
        ${pres?`<div><div class="lbl">Presenter</div>${pres}</div>`:""}
        ${row("Date", s.date||"")} ${row("Doors", s.doors||"")}
-       ${row("Show time", s.show_time||"")} ${row("Tickets", tstat || (s.ticket_link?"available":""))}
+       ${row("Show time", s.show_time||"")}
+       ${ticketVal?`<div><div class="lbl">Tickets</div><div class="val ${ticketVal?"":"miss"}">${tick}</div></div>`:""}
        ${s.room?row("Room", s.room):""} ${s.age_rating?row("Ages", s.age_rating):""}
      </div>
      ${note} ${desc}
