@@ -95,6 +95,15 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "foxoakland": {
+        "key": "foxoakland",
+        "name": "Fox Theater (Oakland)",
+        "city": "Oakland, CA",
+        "dir": os.path.join(ROOT, "foxoakland"),
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
 }
 
 
