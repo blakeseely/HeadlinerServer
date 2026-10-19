@@ -19,6 +19,7 @@ for every venue; each theater is a thin adapter on top of it.
 | [`foxoakland/`](foxoakland/) | Fox Theater, Oakland | thefoxoakland.com (Another Planet / TicketWeb WordPress) | `:8050/foxoakland/` | music **and** comedy; the /listing/ listing is fully server-rendered (one GET = the whole schedule, no pagination) with tour / headliner / `<br>`-separated support as separate fields; detail pages add the age rating + a per-artist bio (description); event_type is derived from the bio/topline (no venue taxonomy); Apple Music matching on all |
 | [`greek/`](greek/) | Greek Theatre, Berkeley | thegreekberkeley.com (UC Berkeley, Another Planet / TicketWeb WordPress) | `:8050/greek/` | music (APE's exclusive-promoter concerts — the *full* season incl. theater/film is on thegreek.com, which is Cloudflare-walled); the /event-listing/ page is fully server-rendered with tour / headliner / `<br>`-separated support as separate fields; detail pages add age + per-artist bio; single room; Apple Music matching on all |
 | [`brickandmortar/`](brickandmortar/) | Brick & Mortar Music Hall, SF | brickandmortarmusic.com (TicketWeb WordPress) | `:8050/brickandmortar/` | music; the /shows listing is fully server-rendered and NOT paginated (one GET = the whole schedule; /page/N/ returns the same shows) — a 250-cap venue, so bills are `+` multi-headline / `Name — Tour` / comma- or `w/`-support; the button class (`tw_ticketssold`/`tw_soldout`) encodes sale state, detail pages add the full date (the listing's date is a year-less MM.DD) + the per-artist bio; Apple Music matching on all |
+| [`frost/`](frost/) | Frost Amphitheater, Stanford | live.stanford.edu (Stanford Live, public JSON API) | `:8050/frost/` | music (the summer concert season, ticketed via AXS); one API GET = the whole season, filtered by the `Frost` flag; server-rendered detail pages add the tour, per-date "Featured Artists" support, age, doors, bio; the off-season is legitimately EMPTY (a summer venue — ~April–October) |
 
 ## Layout
 
@@ -40,6 +41,7 @@ cafedunord/          venue adapter: fetch (server-rendered /shows listing + deta
 foxoakland/          venue adapter: fetch (server-rendered /listing/ + detail pages for age + bio) + build.py
 greek/               venue adapter: fetch (server-rendered /event-listing/ + detail pages for age + bio) + build.py
 brickandmortar/      venue adapter: fetch (server-rendered /shows listing + detail pages for date + bio) + build.py
+frost/               venue adapter: fetch (Stanford Live JSON API + detail pages for tour/age/bio) + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
                      + per-venue diff; --full = full Apple Music re-match)
