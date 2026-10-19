@@ -1,0 +1,5 @@
+# Raw HTML snapshot is bulky; the derived JSON is what the pipeline uses.
+cache/shows_raw.html
+*.fetched_at
+__pycache__/
+*.pyc

@@ -167,8 +167,9 @@ function renderList(){
     const sup=anames(s.support_artists);
     const g=s.event_type? `<span class="catglyph">${CATGLYPH[s.event_type]||""}</span> `:"";
     const nf=(HAS_AM && (s.headline_artists||[]).concat(s.support_artists||[]).some(a=>aname(a)&&!a.found))?'<span class="nf-tag">♪ ?</span>':"";
+    const rm=s.room?` <span class="cat" style="opacity:.8">▸ ${esc(s.room)}</span>`:"";
     html+=`<div class="item ${cur===s? 'active':''}" data-id="${DATA.shows.indexOf(s)}">
-      <div class="name">${g}${esc(nm)} <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓':(stt.cls==='warn'?'⚠':'✗')}</span></div>
+      <div class="name">${g}${esc(nm)} ${rm} <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓':(stt.cls==='warn'?'⚠':'✗')}</span></div>
       <div class="meta">${s.date||'?'} ${s.show_time||''}${sup? ' · +'+esc(sup):''} ${s.show_title?' · '+esc(s.show_title):''} ${nf}</div>
     </div>`;
   }
@@ -210,7 +211,7 @@ function renderDetail(){
        ${pres?`<div><div class="lbl">Presenter</div>${pres}</div>`:""}
        ${row("Date", s.date||"")} ${row("Doors", s.doors||"")}
        ${row("Show time", s.show_time||"")} ${row("Tickets", tstat || (s.ticket_link?"available":""))}
-       ${s.age_rating?row("Ages", s.age_rating):""}
+       ${s.room?row("Room", s.room):""} ${s.age_rating?row("Ages", s.age_rating):""}
      </div>
      ${note} ${desc}
      ${(s.ticket_link||s.event_page)?`<div>

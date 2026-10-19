@@ -86,6 +86,15 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "cafedunord": {
+        "key": "cafedunord",
+        "name": "Cafe du Nord",
+        "city": "San Francisco, CA",
+        "dir": os.path.join(ROOT, "cafedunord"),
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
 }
 
 

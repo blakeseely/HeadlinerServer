@@ -15,6 +15,7 @@ for every venue; each theater is a thin adapter on top of it.
 | [`regency/`](regency/) | The Regency Ballroom, SF | theregencyballroom.com (AEG/AXS blob feed) | `:8050/regency/` | music (all bills); one unauthenticated AEG JSON GET = the whole calendar with headliners + support pre-structured; Apple Music matching on all |
 | [`augusthall/`](augusthall/) | August Hall, SF | augusthallsf.com (TicketWeb WordPress) | `:8050/augusthall/` | music (all bills); listing pages + per-show detail pages (plain HTML, server-side); tour titles, "with" support, and censored names handled; Apple Music matching on all |
 | [`warfield/`](warfield/) | The Warfield Theatre, SF | thewarfieldtheatre.com (AEG/AXS template) | `:8050/warfield/` | music (all bills); the /events/all listing is fully server-rendered with presenter / tour / headliner / support as separate lines (no per-detail title parsing); detail pages add doors + age; Apple Music matching on all |
+| [`cafedunord/`](cafedunord/) | Cafe du Nord, SF | cafedunord.com (WordPress, two rooms) | `:8050/cafedunord/` | music (all bills); the /shows listing is fully server-rendered with presenter / headliner / comma-list support as separate fields; detail pages add the description (MusicEvent JSON-LD); the upstairs Swedish American Hall room is surfaced via the `room` field; Apple Music matching on all |
 
 ## Layout
 
@@ -32,6 +33,7 @@ gamh/                venue adapter: fetch (JSON-LD + detail pages) + support par
 regency/             venue adapter: fetch (AEG/AXS public JSON feed) + build.py
 augusthall/          venue adapter: fetch (TicketWeb listing + detail pages) + title parser + build.py
 warfield/            venue adapter: fetch (AEG/AXS server-rendered listing + detail pages) + build.py
+cafedunord/          venue adapter: fetch (server-rendered /shows listing + detail pages for descriptions) + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
                      + per-venue diff; --full = full Apple Music re-match)

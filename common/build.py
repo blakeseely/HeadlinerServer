@@ -42,6 +42,7 @@ SHOULD_FIELDS = [
     "ticket_link",      # str|null
     "ticket_status",    # str|null: on sale | sold out | ...
     "event_page",       # str: the venue's own page for this event
+    "room",             # str|null: room/stage name for multi-room venues (e.g. "Swedish American Hall (upstairs)")
     "age_rating",       # str|null
     "note",             # str|null
     "description",      # str|null
@@ -56,7 +57,7 @@ def show(event_type=None, needs_review=False,
          show_title=None, presenters=None, set_format=None,
          date=None, date_label=None, doors=None, show_time=None,
          ticket_link=None, ticket_status=None, event_page=None,
-         age_rating=None, note=None, description=None):
+         room=None, age_rating=None, note=None, description=None):
     """Build one show record in the shared shape (missing values -> None)."""
     import datetime as _dt
     return {
@@ -75,6 +76,7 @@ def show(event_type=None, needs_review=False,
         "ticket_link": ticket_link,
         "ticket_status": ticket_status,
         "event_page": event_page,
+        "room": room,
         "age_rating": age_rating,
         "note": note,
         "description": description,
