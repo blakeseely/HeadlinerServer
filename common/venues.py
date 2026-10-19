@@ -104,6 +104,15 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "greek": {
+        "key": "greek",
+        "name": "Greek Theatre",
+        "city": "Berkeley, CA",
+        "dir": os.path.join(ROOT, "greek"),
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
 }
 
 

@@ -17,6 +17,7 @@ for every venue; each theater is a thin adapter on top of it.
 | [`warfield/`](warfield/) | The Warfield Theatre, SF | thewarfieldtheatre.com (AEG/AXS template) | `:8050/warfield/` | music (all bills); the /events/all listing is fully server-rendered with presenter / tour / headliner / support as separate lines (no per-detail title parsing); detail pages add doors + age; Apple Music matching on all |
 | [`cafedunord/`](cafedunord/) | Cafe du Nord, SF | cafedunord.com (WordPress, two rooms) | `:8050/cafedunord/` | music (all bills); the /shows listing is fully server-rendered with presenter / headliner / comma-list support as separate fields; detail pages add the description (MusicEvent JSON-LD); the upstairs Swedish American Hall room is surfaced via the `room` field; Apple Music matching on all |
 | [`foxoakland/`](foxoakland/) | Fox Theater, Oakland | thefoxoakland.com (Another Planet / TicketWeb WordPress) | `:8050/foxoakland/` | music **and** comedy; the /listing/ listing is fully server-rendered (one GET = the whole schedule, no pagination) with tour / headliner / `<br>`-separated support as separate fields; detail pages add the age rating + a per-artist bio (description); event_type is derived from the bio/topline (no venue taxonomy); Apple Music matching on all |
+| [`greek/`](greek/) | Greek Theatre, Berkeley | thegreekberkeley.com (UC Berkeley, Another Planet / TicketWeb WordPress) | `:8050/greek/` | music (APE's exclusive-promoter concerts — the *full* season incl. theater/film is on thegreek.com, which is Cloudflare-walled); the /event-listing/ page is fully server-rendered with tour / headliner / `<br>`-separated support as separate fields; detail pages add age + per-artist bio; single room; Apple Music matching on all |
 
 ## Layout
 
@@ -36,6 +37,7 @@ augusthall/          venue adapter: fetch (TicketWeb listing + detail pages) + t
 warfield/            venue adapter: fetch (AEG/AXS server-rendered listing + detail pages) + build.py
 cafedunord/          venue adapter: fetch (server-rendered /shows listing + detail pages for descriptions) + build.py
 foxoakland/          venue adapter: fetch (server-rendered /listing/ + detail pages for age + bio) + build.py
+greek/               venue adapter: fetch (server-rendered /event-listing/ + detail pages for age + bio) + build.py
 serve.py             single entry point: picker at /, venues at /<key>/
 update_all.py        one command to refresh ALL venues (fetch/build/lookup/build
                      + per-venue diff; --full = full Apple Music re-match)
