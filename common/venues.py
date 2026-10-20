@@ -131,6 +131,19 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "chapel": {
+        "key": "chapel",
+        "name": "The Chapel",
+        "city": "San Francisco, CA",
+        "dir": os.path.join(ROOT, "chapel"),
+        # Single-room live-music venue (Mission District). Calendar is the
+        # full season (12 server-rendered month tables). Spotify is honest
+        # null: the venue's site publishes no per-artist links and the
+        # Seetickets ticket pages are bot-walled.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "events.json",
+    },
 }
 
 
