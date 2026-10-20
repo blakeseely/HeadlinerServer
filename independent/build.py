@@ -38,6 +38,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))  # repo root -> `import common`
 from common import apple_music
 from common import build as common_build
+from common import spotify
 
 ROOT = HERE
 SRC = os.path.join(ROOT, "cache", "vfinal.json")
@@ -330,7 +331,9 @@ def main():
             rec["note"] = pt["note"]
         shows.append(rec)
 
-    stats = {"apple_music": apple_music.apple_music_stats(shows)}
+    spotify.merge_shows(shows, spotify.from_captures(events, url_key="href"))
+    stats = {"apple_music": apple_music.apple_music_stats(shows),
+             "spotify": spotify.stats(shows)}
     common_build.run_build(VENUE, VENUE_ID, SRC_URL, SRC_URL, shows, stats)
 
     print(f"built {len(shows)} shows -> {DST}")

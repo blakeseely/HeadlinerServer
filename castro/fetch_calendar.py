@@ -22,8 +22,12 @@ against descriptions captured into cache/details.json (browser pass).
 """
 import os, re, json, html, urllib.request, sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common import spotify
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(ROOT, "cache", "calendar.json")
+SPOTIFY_CACHE = os.path.join(ROOT, "cache", "spotify.json")
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
      "(KHTML, like Gecko) Chrome/125.0 Safari/537.36"
 URL = "https://thecastro.com/calendar/"
@@ -104,6 +108,10 @@ def main():
     open(os.path.join(ROOT, "cache", "calendar_raw.html"), "w").write(src)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(rows, open(OUT, "w"), indent=1, ensure_ascii=False)
+    # Spotify: each event detail page publishes per-attraction links (strategy
+    # A in common.spotify). Incremental — only new slugs hit the network; a
+    # film page simply yields no link (honest null, like a not-found match).
+    spotify.fetch_spotify(rows, SPOTIFY_CACHE, url_key="url")
     no_date = [r["title"] for r in rows if not r["start"]]
     no_buy = [r["title"] for r in rows if not r["ticket_link"]]
     sold = [r["title"] for r in rows if r.get("ticket_status") == "sold out"]

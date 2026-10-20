@@ -44,11 +44,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))  # repo root -> `import common`
 from common import apple_music
 from common import build as common_build
+from common import spotify
 
 ROOT = HERE
 CAL = os.path.join(ROOT, "cache", "calendar.json")
 DET = os.path.join(ROOT, "cache", "details.json")
 LOOKUP_CACHE = os.path.join(ROOT, "cache", "lookup.json")
+SPOTIFY_CACHE = os.path.join(ROOT, "cache", "spotify.json")
 DST = os.path.join(ROOT, "data", "shows.json")
 
 VENUE = "The Castro Theatre"
@@ -264,9 +266,11 @@ def main():
             rec["description"] = body[:1200]
         shows.append(rec)
 
+    spotify.merge_shows(shows, spotify.load_cache(SPOTIFY_CACHE))
     stats = {
         "event_types": dict(Counter(s["event_type"] for s in shows)),
         "apple_music": apple_music.apple_music_stats(shows),
+        "spotify": spotify.stats(shows),
     }
     common_build.run_build(VENUE, VENUE_ID, SRC_URL, SRC_URL, shows, stats)
 

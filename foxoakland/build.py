@@ -32,6 +32,7 @@ import os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 from common import build, apple_music
+from common import spotify
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -159,6 +160,8 @@ def split_support(support_raw, lookup):
 def main():
     cache = json.load(open(os.path.join(CACHE, "shows.json")))
     lookup = apple_music.load_lookup_cache(os.path.join(CACHE, "lookup.json"))
+    det_path = os.path.join(CACHE, "details.json")
+    details = json.load(open(det_path)) if os.path.exists(det_path) else {}
 
     shows = []
     for r in cache:
@@ -199,12 +202,14 @@ def main():
             description=(desc[:1000] or None) if desc else None,
         ))
 
+    spotify.merge_shows(shows, spotify.from_captures(details))
     stats = {
         "event_types": {
             "music": sum(1 for s in shows if s["event_type"] == "music"),
             "comedy": sum(1 for s in shows if s["event_type"] == "comedy"),
         },
         "apple_music": apple_music.apple_music_stats(shows),
+        "spotify": spotify.stats(shows),
     }
     path = build.run_build(VENUE, VENUE_ID, VENUE_URL, SOURCE_URL, shows, stats)
     am = stats["apple_music"]

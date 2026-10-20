@@ -53,6 +53,8 @@
   a.btn{display:inline-block;margin-top:12px;background:var(--acc);color:#fff;text-decoration:none;
         padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600}
   a.plain{color:var(--acc);font-size:12px;text-decoration:none}
+  .sp-tag{font-size:11px;margin-left:4px;vertical-align:1px;text-decoration:none}
+  .sp-tag:hover{opacity:.8}
   .empty{padding:40px;color:var(--mut);text-align:center}
   .legend{padding:10px 24px;font-size:12px;color:var(--mut)}
   .chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;
@@ -90,6 +92,7 @@
     <option value="ok">✓ complete</option><option value="warn">⚠ review</option><option value="bad">✗ issue</option></select>
   <span class="stat" id="stat"></span>
   <span class="stat" id="amstat"></span>
+  <span class="stat" id="spstat"></span>
   <a class="plain" id="raw" target="_blank">view JSON</a>
 </header>
 <div class="layout">
@@ -126,6 +129,7 @@ function achip(a, supp){
   const name=aname(a);
   const isObj=(a&&typeof a==="object");
   const link=isObj? a.apple_music : null;
+  const sp=isObj? a.spotify : null;
   const found=isObj? a.found : null;
   const conf=isObj? a.confidence : null;
   const label=isObj? a.match_label : null;
@@ -141,10 +145,13 @@ function achip(a, supp){
     if(label) tip="Apple Music: "+label;
     const pct=found?Math.round((conf==null?1:conf)*100):0;
     tag=tier===2?" ≈"+pct+"%":(tier===3?" ⚠":(tier===0?' <span class="nf-tag">not found</span>':""));
-    if(found && link) return `<a class="${cls}" href="${esc(link)}" target="_blank" title="${esc(tip)}">${esc(name)}${tag}</a>`;
-    return `<span class="${cls}" title="${esc(tip)}">${esc(name)}${tag}</span>`;
   }
-  return `<span class="${cls}" title="${esc(tip)}">${esc(name)}</span>`;
+  // the venue-published Spotify link (scraped from the site) — shows even
+  // when there's no Apple Music match. Never a lookup, so no confidence tag.
+  let spot=sp?` <a class="sp-tag" href="${esc(sp)}" target="_blank" title="Spotify (from the venue's site)">🎧</a>`:"";
+  if(sp && !link && !found) tip="Spotify link only (venue site)";
+  if(found && link) return `<a class="${cls}" href="${esc(link)}" target="_blank" title="${esc(tip)}">${esc(name)}${tag}${spot}</a>`;
+  return `<span class="${cls}" title="${esc(tip)}">${esc(name)}${tag}${spot}</span>`;
 }
 const chips=(a,supp)=> (a||[]).map(x=>achip(x,supp)).join("");
 
@@ -206,7 +213,7 @@ function renderDetail(){
      ${stt.label!=='complete'?('— '+esc(stt.label)):''}</div>
    <div class="card"><h3>My extraction</h3>
      <div class="grid">
-       <div><div class="lbl">Headliner(s) ${HAS_AM?'<span class="lbl-sub">· ♪ links to Apple Music</span>':""}</div>${head}</div>
+       <div><div class="lbl">Headliner(s) ${HAS_AM?'<span class="lbl-sub">· ♪ Apple Music</span>':""}<span class="lbl-sub">· 🎧 Spotify</span></div>${head}</div>
        <div><div class="lbl">Support</div>${sup}</div>
        ${title?`<div><div class="lbl">Show / Tour title</div>${title}</div>`:""}
        ${pres?`<div><div class="lbl">Presenter</div>${pres}</div>`:""}
@@ -243,6 +250,13 @@ if(HAS_AM){
   document.getElementById("amstat").innerHTML=`♪ Apple Music: <b>${a.exact}</b> exact · <b>${a.close}</b> close · ${a.needs_review} review · <b>${a.not_found}</b> not found (of ${a.unique_artists})`;
 } else {
   document.getElementById("amstat").style.display="none";
+}
+// Spotify pill: links scraped from the venue's own site (not a catalog search)
+const SP=(STATS.spotify||{}).linked;
+if(SP){
+  document.getElementById("spstat").innerHTML=`🎧 Spotify: <b>${SP}</b> linked (from the venue's site)`;
+} else {
+  document.getElementById("spstat").style.display="none";
 }
 // type filter — only for venues that carry event_type counts
 const catf=document.getElementById("catf");

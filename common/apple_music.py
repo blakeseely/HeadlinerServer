@@ -423,8 +423,9 @@ def artist_obj(name, cache):
     Placeholder names (starting with '(') are never looked up.
     """
     if name.startswith("("):  # placeholder like (Multiple Artists)
-        return {"name": name, "apple_music": None, "found": False,
-                "confidence": None, "matched": None, "match_label": None}
+        return {"name": name, "apple_music": None, "spotify": None,
+                "found": False, "confidence": None, "matched": None,
+                "match_label": None}
     r = cache.get(cache_key(name)) or {}
     link = r.get("link")
     found = bool(link)
@@ -466,6 +467,7 @@ def artist_obj(name, cache):
                     label = "close match: " + matched
     return {"name": name,
             "apple_music": link if found else None,
+            "spotify": None,
             "found": found,
             "confidence": conf,
             "matched": matched if found else None,
@@ -475,8 +477,9 @@ def artist_obj(name, cache):
 def plain_artist(name):
     """Artist record for venues WITHOUT Apple Music matching: plain name only
     (same shape, match fields null)."""
-    return {"name": name, "apple_music": None, "found": False,
-            "confidence": None, "matched": None, "match_label": None}
+    return {"name": name, "apple_music": None, "spotify": None,
+            "found": False, "confidence": None, "matched": None,
+            "match_label": None}
 
 
 def load_lookup_cache(path):

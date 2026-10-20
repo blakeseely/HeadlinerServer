@@ -28,6 +28,8 @@ common/              THE shared pipeline (venue-agnostic)
   venues.py          venue registry — ADD A NEW THEATER HERE (one dict entry)
   build.py           shared show record shape + run_build() (sort, stats, writer)
   apple_music.py     Apple Music confidence engine + artist records (one copy)
+  spotify.py         per-artist Spotify links, scraped from each venue's own
+                     pages (no API key) + the shared merge/stats/join helpers
   lookup.py          Apple Music API driver (run per venue that wants links)
   viewer/index.html  ONE reviewer template; adapts to each venue's fields
 independent/         venue adapter: fetch + title parser + build.py
@@ -77,11 +79,32 @@ show_title, presenters, set_format, date, date_label, doors, show_time,
 ticket_link, ticket_status, event_page, age_rating, note, description`.
 
 Artist records are always the same object:
-`{name, apple_music, found, confidence, matched, match_label}` — venues
-without Apple Music matching leave the match fields `null`.
+`{name, apple_music, spotify, found, confidence, matched, match_label}` — venues
+without Apple Music matching leave the match fields `null`; `spotify` is `null`
+unless the venue's own page published that artist's link.
 
 `stats` carries any number of named blocks (`event_types`, `apple_music`, …);
 the viewer and the picker render whichever are present.
+
+## Artist links
+
+Every venue links Apple Music artists (a catalog *search*, confidence-scored —
+see the mandate below). In addition, each artist record carries a `spotify`
+field: a direct link to that artist's Spotify page, **scraped from the venue's
+own event page** (no API key, no Spotify dependency). `common/spotify.py` owns
+the extraction (a small family of venue markup patterns) plus the shared
+`merge_shows` / `stats` / `from_captures` / `fetch_spotify` helpers each build
+and fetch calls.
+
+Coverage is **honest**: a show whose venue page publishes no Spotify link gets
+`spotify: null`, exactly like an Apple Music not-found — we never guess a link.
+
+| Venue | Spotify links on its pages? |
+|-------|----------------------------|
+| Independent, Brick & Mortar, Cafe du Nord, Greek, Fox | yes — per-artist social buttons on the detail page |
+| Castro | yes — per-attraction social row on the detail page |
+| Regency | yes — the AEG feed's association records carry them (no extra fetch) |
+| Fillmore, GAMH, August Hall, Warfield, Frost | no — the sites don't publish them (honest nulls) |
 
 ## Adding a new theater
 

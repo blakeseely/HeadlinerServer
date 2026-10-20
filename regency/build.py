@@ -29,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))  # repo root -> `import common`
 from common import apple_music
 from common import build as common_build
+from common import spotify
 
 ROOT = HERE
 CAL = os.path.join(ROOT, "cache", "events.json")
@@ -199,11 +200,24 @@ def main():
             note=note,
             description=desc_of(e),
         )
+        # Spotify: the AEG blob's association records carry only a performerId
+        # (no name), so we zip them against the text-derived bill in order and
+        # assign only where the counts line up — never a guess.
+        a = e.get("associations") or {}
+        hl_recs = a.get("headliners") or []
+        sup_recs = a.get("supportingActs") or []
+        for arr, recs in ((rec["headline_artists"], hl_recs),
+                          (rec["support_artists"], sup_recs)):
+            if len(arr) == len(recs):
+                for artist, r in zip(arr, recs):
+                    if isinstance(artist, dict):
+                        artist["spotify"] = (spotify.spotify_links_json(r) or [None])[0]
         shows.append(rec)
 
     stats = {
         "event_types": dict(Counter(s["event_type"] for s in shows)),
         "apple_music": apple_music.apple_music_stats(shows),
+        "spotify": spotify.stats(shows),
     }
     common_build.run_build(VENUE, VENUE_ID, VENUE_URL, BLOB_URL, shows, stats)
 

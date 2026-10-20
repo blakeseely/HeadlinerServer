@@ -32,8 +32,11 @@ Output (cache/):
 Do NOT write a freshness stamp — the root update_all.py runner writes
 cache/shows.json.fetched_at and skips the re-crawl when it is < 24h old.
 """
-import os, re, html, json, time, urllib.request
+import os, re, html, json, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common import spotify
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(ROOT, "cache")
@@ -185,18 +188,29 @@ def fetch_details(rows):
             have = json.load(open(DETAILS))
         except ValueError:
             have = {}
+        # older cache shape (slug -> description string) -> {description, spotify}
+        # (legacy entries get spotify=None = "not yet captured for spotify")
+        have = {k: (v if isinstance(v, dict) else {"description": v, "spotify": None})
+                for k, v in have.items()}
+    # Re-crawl only pages never captured for spotify (the key is absent). A
+    # page crawled that published no link stores spotify=None and is left
+    # alone — a key-presence check makes the backfill finite.
     todo = [r["event_page"] for r in rows
-            if r.get("event_page") and r["event_page"] not in have]
+            if r.get("event_page")
+            and (r["event_page"] not in have
+                 or not isinstance(have[r["event_page"]], dict)
+                 or "spotify" not in have[r["event_page"]])]
     todo = todo[:DETAIL_MAX]
     if todo:
         with ThreadPoolExecutor(max_workers=3) as ex:
             futs = {ex.submit(fetch, url): url for url in todo}
             for f in futs:
                 url = futs[f]
-                desc = _description(f.result())
-                if desc:
-                    have[url] = desc
-                    time.sleep(0.3)  # be polite
+                src = f.result()
+                have[url] = {"description": _description(src),
+                             "spotify": (spotify.extract_links(src) or None)
+                             if src else None}
+                time.sleep(0.3)  # be polite
     json.dump(have, open(DETAILS, "w"), indent=1, ensure_ascii=False)
     return have
 
@@ -212,7 +226,9 @@ def main():
     details = fetch_details(rows)
     for r in rows:
         if r.get("event_page"):
-            r["description"] = details.get(r["event_page"])
+            d = details.get(r["event_page"]) or {}
+            r["description"] = d.get("description")
+            r["spotify"] = d.get("spotify") or {}
 
     rows.sort(key=lambda r: (r.get("doors_iso") or r.get("date") or ""))
     json.dump(rows, open(OUT, "w"), indent=1, ensure_ascii=False)

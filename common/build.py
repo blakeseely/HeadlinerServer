@@ -29,7 +29,7 @@ from .apple_music import date_label
 SHOULD_FIELDS = [
     "event_type",       # str|null: music | film | comedy | other
     "needs_review",     # bool: venue-flagged for human review
-    "headline_artists", # [{name, apple_music, found, confidence, matched, match_label}]
+    "headline_artists", # [{name, apple_music, spotify, found, confidence, matched, match_label}]
     "support_artists",  # same shape
     "multi_artist",     # bool
     "show_title",       # str|null: tour/show title when billed separately
@@ -94,6 +94,9 @@ def normalize(shows):
                 s.setdefault("presenters", [])
             elif f in ("headline_artists", "support_artists"):
                 s.setdefault(f, [])
+                for a in s[f]:
+                    if isinstance(a, dict):
+                        a.setdefault("spotify", None)
             elif f == "multi_artist":
                 s.setdefault("multi_artist", False)
             else:

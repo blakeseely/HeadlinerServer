@@ -62,6 +62,11 @@ def venue_pills(key, data):
         pills.append(f"Apple Music <b>{am.get('exact', 0)}</b> exact / {am.get('close', 0)} close")
         if am.get("needs_review"):
             pills.append(f"<b>{am['needs_review']}</b> needs review")
+    # Spotify pill (top-level key): links scraped from the venue's own site.
+    # Independent of Apple Music — a venue has one, the other, or both.
+    sp = st.get("spotify")
+    if sp:
+        pills.append(f"Spotify <b>{sp.get('linked', 0)}</b> linked")
     return pills
 
 

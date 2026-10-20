@@ -28,8 +28,11 @@ The site has been redesigned over time (the old cache carried a leading horse
 emoji in <title> that the current pages no longer emit) — the `lines` contract
 is what matters, and it is stable across the redesign.
 """
-import os, re, json, html, time, urllib.request
+import os, re, sys, json, html, time, urllib.request
 from html.parser import HTMLParser
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common import spotify
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
@@ -265,6 +268,7 @@ def parse_detail(src, item):
         "show_raw": show_raw,
         "buy_url": buy_url,
         "lines": lines,
+        "spotify": spotify.extract_links(src),
     }
 
 

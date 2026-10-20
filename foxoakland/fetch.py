@@ -41,7 +41,9 @@ Output (cache/):
 Do NOT write a freshness stamp — the root update_all.py runner writes
 cache/shows.json.fetched_at and skips the re-crawl when it is < 24h old.
 """
-import os, re, html, json, time, urllib.request
+import os, re, html, json, time, sys, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common import spotify
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -214,16 +216,18 @@ def _more_information(src):
 
 
 def _detail(src):
-    """Detail page -> {age, notice, bio} (None values where absent)."""
+    """Detail page -> {age, notice, bio, spotify}. spotify is None when the
+    page publishes no open.spotify.com links (a finite "crawled" sentinel)."""
     if not src:
-        return {"age": None, "notice": None, "bio": None}
+        return {"age": None, "notice": None, "bio": None, "spotify": None}
     age, notice = _more_information(src)
     bio = None
     bi = src.find('<div class="bio">')
     if bi != -1:
         block = _block(src, bi)
         bio = _clean_bio(block)
-    return {"age": age, "notice": notice, "bio": bio}
+    return {"age": age, "notice": notice, "bio": bio,
+            "spotify": (spotify.extract_links(src) or None)}
 
 
 def fetch_details(rows):
@@ -238,7 +242,10 @@ def fetch_details(rows):
         except ValueError:
             have = {}
     todo = [r["event_page"] for r in rows
-            if r.get("event_page") and r["event_page"] not in have]
+            if r.get("event_page")
+            and (r["event_page"] not in have
+                 or not isinstance(have[r["event_page"]], dict)
+                 or "spotify" not in have[r["event_page"]])]
     todo = todo[:DETAIL_MAX]
     if todo:
         with ThreadPoolExecutor(max_workers=3) as ex:
@@ -251,6 +258,7 @@ def fetch_details(rows):
                     "age": new.get("age") or old.get("age"),
                     "notice": new.get("notice") or old.get("notice"),
                     "bio": new.get("bio") or old.get("bio"),
+                    "spotify": new.get("spotify") or old.get("spotify"),
                 }
                 time.sleep(0.3)   # be polite
     json.dump(have, open(DETAILS, "w"), indent=1, ensure_ascii=False)

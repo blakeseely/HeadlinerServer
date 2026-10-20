@@ -22,8 +22,12 @@ import html
 import json
 import os
 import re
+import sys
 import time
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common import spotify
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = "https://www.brickandmortarmusic.com"
@@ -147,6 +151,7 @@ def parse_detail(raw, fallback):
         if best is None or len(txt) > len(best):
             best = txt
     rec["description"] = best
+    rec["spotify"] = spotify.extract_links(raw)
     return rec
 
 
