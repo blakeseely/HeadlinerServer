@@ -78,7 +78,7 @@ for venue in sorted(os.listdir(root)):
     except Exception:
         pass
     manifest["venues"].append({
-        "venue": venue, "file": f"{venue}/shows.json",
+        "venue_id": venue, "file": f"{venue}/shows.json",
         "city": city, "metro": metro,
         "updated_at": updated, "show_count": len(shows or []),
         "sha256_16": hashlib.sha256(raw.encode()).hexdigest()[:16],
