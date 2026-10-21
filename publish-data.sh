@@ -34,11 +34,22 @@ fi
 cd "$DATA_DIR"
 git remote set-url origin "$ORIGIN"
 git fetch -q origin
-# data branch: default to whatever the remote's default is (usually main)
+# data branch: prefer the remote default; fall back to main/master/HEAD
 BRANCH="$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p' | head -1)"
+if [ -z "$BRANCH" ]; then
+  for b in main master; do
+    if git ls-remote --exit-code --heads origin "$b" >/dev/null 2>&1; then
+      BRANCH="$b"
+      break
+    fi
+  done
+fi
 BRANCH="${BRANCH:-main}"
 git checkout -q "$BRANCH" 2>/dev/null || git checkout -q -b "$BRANCH"
-git reset -q --hard "origin/$BRANCH" 2>/dev/null || git reset -q --hard
+# fresh empty repo (no commits yet): there is nothing to sync
+if git rev-parse --verify -q origin/"$BRANCH" >/dev/null 2>&1; then
+  git reset -q --hard "origin/$BRANCH"
+fi
 
 # --- stage the venue JSON + manifest (stays here, no cd) ---
 export ROOT
