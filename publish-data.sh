@@ -1,92 +1,83 @@
 #!/usr/bin/env bash
-# publish-data.sh — stage + publish scraped JSON to the separate data repo.
+# publish-data.sh — copy scraped JSON into the separate DATA repo and push it.
 #
-# Layout inside the data repo:
-#   manifest.json            <- what the iOS app fetches first (venue index)
-#   <venue>/shows.json       <- one file per venue, app downloads on launch
+# Data-repo layout (what the iOS app downloads):
+#   manifest.json            <- app fetches this first; lists venues + versions
+#   <venue>/shows.json       <- one file per venue
 #
-# The data repo is a shallow clone kept at data-repo/. Its only remote is
-# the data repo, NEVER HeadlinerServer.
+# The data repo is a SHALLOW clone kept at data-repo/ (gitignored). Data
+# refreshes are append-only (never history rewrites), so a shallow clone is
+# safe and stays tiny. If the origin is unset or unreachable, the script
+# exits cleanly with a "not configured" notice and the stale published copy
+# stays valid — a data-publish hiccup must never break the main refresh.
 #
-# Usage: ./publish-data.sh
-#   - clones data-repo origin if missing (shallow)
-#   - copies every <venue>/data/shows.json into data-repo/<venue>/shows.json
-#   - regenerates manifest.json (venue, url, updated_at, sha256, show count)
-#   - commits + pushes (git push is authenticated; if auth fails the script
-#     fails loudly and the stale published copy remains valid)
+# Needs HEADLINERS_DATA_ORIGIN in .env (the data-repo https URL).
 
 set -euo pipefail
 cd "$(dirname "$0")"
-
-# load config (data repo URL) from .env if present
 [ -f .env ] && set -a && . ./.env && set +a
 
 ROOT="$(pwd)"
 DATA_DIR="$ROOT/data-repo"
-ORIGIN_URL="${HEADLINERS_DATA_ORIGIN:?set HEADLINERS_DATA_ORIGIN in .env to the data repo URL (e.g. https://github.com/blakeseely/headliners-data.git)}"
+ORIGIN="${HEADLINERS_DATA_ORIGIN:-}"
 
+if [ -z "$ORIGIN" ]; then
+  echo "SKIP: HEADLINERS_DATA_ORIGIN not set in .env — data publish not configured yet."
+  exit 0
+fi
+
+# --- ensure the shallow clone exists ---
 if [ ! -d "$DATA_DIR/.git" ]; then
-  if [ -e "$DATA_DIR" ]; then rm -rf "$DATA_DIR"; fi
-  git init -q "$DATA_DIR"
+  rm -rf "$DATA_DIR"
+  git clone -q --depth 1 "$ORIGIN" "$DATA_DIR"
 fi
 cd "$DATA_DIR"
-git remote get-url origin >/dev/null 2>&1 || git remote add origin "$ORIGIN_URL"
+git remote set-url origin "$ORIGIN"
+git fetch -q origin
+# data branch: default to whatever the remote's default is (usually main)
+BRANCH="$(git -C "$DATA_DIR" remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p' | head -1)"
+BRANCH="${BRANCH:-main}"
+git checkout -q "$BRANCH" 2>/dev/null || git checkout -q -b "$BRANCH"
+git reset -q --hard "origin/$BRANCH" 2>/dev/null || git reset -q --hard
 
-if [ ! -f .git/HEAD ]; then
-  git init -q
-fi
-
-# fetch remote tip (if a remote exists and is reachable); else work on empty
-git fetch -q origin main 2>/dev/null || true
-git checkout -q main 2>/dev/null || git checkout -q -b main 2>/dev/null || git checkout --orphan main
-git reset -q --hard origin/main 2>/dev/null || git reset -q --hard 2>/dev/null || true
-
-VENUES=$(python3 - <<'PY'
-import os, json, hashlib, datetime
+# --- stage the venue JSON + manifest ---
+python3 - <<'PY'
+import os, json, hashlib, datetime, shutil
 root = os.environ["ROOT"]
-lines = []
+data = os.path.join(root, "data-repo")
 manifest = {"generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "venues": []}
 for venue in sorted(os.listdir(root)):
     src = os.path.join(root, venue, "data", "shows.json")
     if not (os.path.isdir(venue) and os.path.isfile(src)):
         continue
-    dst_dir = os.path.join(root, "data-repo", venue)
+    dst_dir = os.path.join(data, venue)
     os.makedirs(dst_dir, exist_ok=True)
     dst = os.path.join(dst_dir, "shows.json")
-    with open(src) as f:
-        raw = f.read()
-    with open(dst, "w") as f:
-        f.write(raw)
+    raw = open(src).read()
+    open(dst, "w").write(raw)
+    shows = updated = None
     try:
         doc = json.loads(raw)
         shows = doc.get("shows", [])
         updated = (shows[0].get("date") if shows else None) or doc.get("generated_at") or doc.get("scraped_at")
     except Exception:
-        shows, updated = [], None
-    digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
+        pass
     manifest["venues"].append({
-        "venue": venue,
-        "file": f"{venue}/shows.json",
-        "updated_at": updated,
-        "show_count": len(shows),
-        "sha256_16": digest,
+        "venue": venue, "file": f"{venue}/shows.json",
+        "updated_at": updated, "show_count": len(shows or []),
+        "sha256_16": hashlib.sha256(raw.encode()).hexdigest()[:16],
     })
-    lines.append(venue)
-with open(os.path.join(root, "data-repo", "manifest.json"), "w") as f:
-    json.dump(manifest, f, indent=2)
-    f.write("\n")
-print(" ".join(lines))
+open(os.path.join(data, "manifest.json"), "w").write(json.dumps(manifest, indent=2) + "\n")
+print("staged", len(manifest["venues"]), "venues")
 PY
-)
 
-echo "staged venues: $VENUES"
-
-if git -C "$DATA_DIR" status --porcelain | grep -q .; then
-  git -C "$DATA_DIR" add -A
-  git -C "$DATA_DIR" -c user.name="headliners-bot" -c user.email="headliners-bot@localhost" \
+# --- commit + push (only if something changed) ---
+if git status --porcelain | grep -q .; then
+  git add -A
+  git -c user.name="headliners-bot" -c user.email="headliners-bot@localhost" \
     commit -q -m "Nightly data refresh (auto)"
-  git -C "$DATA_DIR" push -u origin main 2>&1 | tail -2
-  echo "published: $(git -C "$DATA_DIR" rev-parse --short HEAD)"
+  git push -q origin "$BRANCH"
+  echo "PUBLISHED $(git rev-parse --short HEAD) -> $ORIGIN"
 else
-  echo "no changes — published data is current"
+  echo "no data changes — published copy already current"
 fi
