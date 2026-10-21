@@ -68,15 +68,18 @@ for venue in sorted(os.listdir(root)):
     os.makedirs(dst_dir, exist_ok=True)
     raw = open(src).read()
     open(os.path.join(dst_dir, "shows.json"), "w").write(raw)
-    shows = updated = None
+    shows = updated = city = metro = None
     try:
         doc = json.loads(raw)
         shows = doc.get("shows", [])
         updated = (shows[0].get("date") if shows else None) or doc.get("generated_at") or doc.get("scraped_at")
+        city = doc.get("city")
+        metro = doc.get("metro")
     except Exception:
         pass
     manifest["venues"].append({
         "venue": venue, "file": f"{venue}/shows.json",
+        "city": city, "metro": metro,
         "updated_at": updated, "show_count": len(shows or []),
         "sha256_16": hashlib.sha256(raw.encode()).hexdigest()[:16],
     })

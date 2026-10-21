@@ -22,6 +22,7 @@ is shared and already there.
 import os
 from . import apple_music
 from .apple_music import date_label
+from . import venues
 
 # --------------------------------------------------------------------------
 # The shared show record shape (superset; null where a venue has no field)
@@ -115,11 +116,20 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
     shows.sort(key=lambda s: (s.get("date") or "9999", s.get("doors") or ""))
     import datetime as _dt
     import json
+    # Geo tags for the iOS app: specific city + metro market (+ neighborhood
+    # when useful). Comes from the registry; safe against a missing key.
+    try:
+        g = venues.geo(venue_id)
+    except Exception:
+        g = {"city": None, "metro": None, "neighborhood": None}
     doc = {
         "venue": venue,
         "venue_id": venue_id,
         "venue_url": venue_url,
         "source_url": source_url,
+        "city": g.get("city"),
+        "metro": g.get("metro"),
+        "neighborhood": g.get("neighborhood"),
         "scraped_at": _dt.date.today().isoformat(),
         "count": len(shows),
         "shows": shows,
