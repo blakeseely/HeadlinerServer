@@ -72,7 +72,6 @@
   .chip.close{color:var(--acc);border-color:rgba(79,140,255,.4)}
   .chip.review{color:var(--warn);border-color:rgba(255,179,71,.5);border-style:dashed}
   .nf-tag{font-size:10px;color:var(--mut);margin-left:4px;text-transform:uppercase;letter-spacing:.04em}
-  .lbl-sub{font-size:10px;color:var(--mut);text-transform:none;letter-spacing:0}
   .desc{font-size:13px;color:var(--mut);white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:4px}
   .cat{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
        padding:2px 9px;border-radius:20px;border:1px solid transparent;vertical-align:middle;margin-left:8px}
@@ -242,7 +241,7 @@ function renderDetail(){
      ${stt.label!=='complete'?('— '+esc(stt.label)):''}</div>
    <div class="card"><h3>My extraction</h3>
      <div class="grid">
-       <div><div class="lbl">Headliner(s) ${HAS_AM?'<span class="lbl-sub">· ♪ Apple Music</span>':""}<span class="lbl-sub">· 🎧 Spotify</span></div>${head}</div>
+       <div><div class="lbl">Headliner(s)</div>${head}</div>
        <div><div class="lbl">Support</div>${sup}</div>
        ${title?`<div><div class="lbl">Show / Tour title</div>${title}</div>`:""}
        ${pres?`<div><div class="lbl">Presenter</div>${pres}</div>`:""}
