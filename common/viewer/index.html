@@ -55,6 +55,12 @@
   a.plain{color:var(--acc);font-size:12px;text-decoration:none}
   .sp-tag{font-size:11px;margin-left:4px;vertical-align:1px;text-decoration:none}
   .sp-tag:hover{opacity:.8}
+  .sp-pills{display:inline-flex;gap:4px;margin-left:6px;vertical-align:2px}
+  .sp-pill{font-size:11px;font-weight:600;line-height:1;padding:2px 7px;border-radius:9px;
+           text-decoration:none;white-space:nowrap}
+  .sp-pill:hover{opacity:.82}
+  .sp-pill.apple{background:rgba(255,93,93,.16);color:var(--bad);border:1px solid rgba(255,93,93,.45)}
+  .sp-pill.spotify{background:rgba(57,217,138,.16);color:var(--ok);border:1px solid rgba(57,217,138,.45)}
   .empty{padding:40px;color:var(--mut);text-align:center}
   .legend{padding:10px 24px;font-size:12px;color:var(--mut)}
   .chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:6px;
@@ -124,8 +130,11 @@ function statusOf(s){
 function esc(x){return (x==null?"":String(x)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 const aname=a=> (a && typeof a==="object") ? a.name : String(a);
 const anames=a=> (a||[]).map(aname).join(" / ");
-// one artist chip: Apple Music link when the venue matches it, else a plain name
-function achip(a, supp){
+// One artist chip. detail=true (the detail pane): the name is PLAIN text and
+// the Apple Music / Spotify links are separate pills (red / green), each
+// omitted when absent. Otherwise (the list) it's the original clickable chip
+// with a confidence tag and an inline 🎧.
+function achip(a, supp, detail){
   const name=aname(a);
   const isObj=(a&&typeof a==="object");
   const link=isObj? a.apple_music : null;
@@ -134,6 +143,26 @@ function achip(a, supp){
   const conf=isObj? a.confidence : null;
   const label=isObj? a.match_label : null;
   const multi=name.startsWith("(");
+
+  if(detail){
+    let pills="";
+    let tip=name;
+    if(HAS_AM && link){
+      let lt="Apple Music";
+      if(label) lt="Apple Music: "+label;
+      else if(conf!=null&&conf<0.8) lt="Apple Music — close match, verified";
+      else if(conf!=null&&conf<1) lt="Apple Music — near match, review";
+      pills+=`<a class="sp-pill apple" href="${esc(link)}" target="_blank" title="${esc(lt)}">Apple Music</a>`;
+    }
+    if(sp){
+      pills+=`<a class="sp-pill spotify" href="${esc(sp)}" target="_blank" title="Spotify">Spotify</a>`;
+    }
+    if(!pills && (link||sp||!found) && HAS_AM && isObj && !found)
+      tip="No confident Apple Music match";
+    if(!pills) return `<span class="chip${multi?" multi":""}" title="${esc(tip)}">${esc(name)}</span>`;
+    return `<span class="chip${multi?" multi":""}"><span>${esc(name)}</span><span class="sp-pills">${pills}</span></span>`;
+  }
+
   let cls="chip"+(multi?" multi":"");
   let tag="", tip=name;
   if(HAS_AM && isObj){
@@ -153,7 +182,7 @@ function achip(a, supp){
   if(found && link) return `<a class="${cls}" href="${esc(link)}" target="_blank" title="${esc(tip)}">${esc(name)}${tag}${spot}</a>`;
   return `<span class="${cls}" title="${esc(tip)}">${esc(name)}${tag}${spot}</span>`;
 }
-const chips=(a,supp)=> (a||[]).map(x=>achip(x,supp)).join("");
+const chips=(a,supp)=> (a||[]).map(x=>achip(x,supp,true)).join("");
 
 function renderList(){
   const list=document.getElementById("list");
@@ -193,7 +222,7 @@ function renderDetail(){
   if(cur==null){d.innerHTML=`<div class="empty">Select a show on the left to review the extraction.</div>`;return;}
   const s=DATA.shows[cur];
   const stt=statusOf(s);
-  const head=(s.headline_artists||[]).map(a=>achip(a,false)).join("")||`<span class="val miss">— missing —</span>`;
+  const head=(s.headline_artists||[]).map(a=>achip(a,false,true)).join("")||`<span class="val miss">— missing —</span>`;
   const sup=(s.support_artists&&s.support_artists.length)?chips(s.support_artists,true):`<span class="val miss">— none listed —</span>`;
   const title=s.show_title?`<div class="val">${esc(s.show_title)}</div>`:"";
   const pres=(s.presenters&&s.presenters.length)?s.presenters.map(a=>`<span class="chip">${esc(a)}</span>`).join(""):"";

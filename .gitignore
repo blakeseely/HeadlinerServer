@@ -3,3 +3,4 @@ __pycache__/
 *.profraw
 
 *.fetched_at
+.env
