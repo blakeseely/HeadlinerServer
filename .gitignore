@@ -3,4 +3,10 @@ __pycache__/
 *.profraw
 
 *.fetched_at
+
+# scraped schedules + scrape caches — these live in the separate data repo
+# (HEADLINERS_DATA_ORIGIN in .env), not here. This repo is code only.
+**/data/
+**/cache/
+data-repo/
 .env
