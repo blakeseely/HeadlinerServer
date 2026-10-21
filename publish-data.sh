@@ -29,32 +29,34 @@ fi
 # --- ensure the shallow clone exists ---
 if [ ! -d "$DATA_DIR/.git" ]; then
   rm -rf "$DATA_DIR"
-  git clone -q --depth 1 "$ORIGIN" "$DATA_DIR"
+  git clone -q --depth 1 "file://$ORIGIN" "$DATA_DIR" 2>/dev/null || git clone -q --depth 1 "$ORIGIN" "$DATA_DIR"
 fi
 cd "$DATA_DIR"
 git remote set-url origin "$ORIGIN"
 git fetch -q origin
 # data branch: default to whatever the remote's default is (usually main)
-BRANCH="$(git -C "$DATA_DIR" remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p' | head -1)"
+BRANCH="$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p' | head -1)"
 BRANCH="${BRANCH:-main}"
 git checkout -q "$BRANCH" 2>/dev/null || git checkout -q -b "$BRANCH"
 git reset -q --hard "origin/$BRANCH" 2>/dev/null || git reset -q --hard
 
-# --- stage the venue JSON + manifest ---
+# --- stage the venue JSON + manifest (stays here, no cd) ---
+export ROOT
 python3 - <<'PY'
-import os, json, hashlib, datetime, shutil
+import os, json, hashlib, datetime
 root = os.environ["ROOT"]
 data = os.path.join(root, "data-repo")
 manifest = {"generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "venues": []}
 for venue in sorted(os.listdir(root)):
+    if not os.path.isdir(os.path.join(root, venue)):
+        continue
     src = os.path.join(root, venue, "data", "shows.json")
-    if not (os.path.isdir(venue) and os.path.isfile(src)):
+    if not os.path.isfile(src):
         continue
     dst_dir = os.path.join(data, venue)
     os.makedirs(dst_dir, exist_ok=True)
-    dst = os.path.join(dst_dir, "shows.json")
     raw = open(src).read()
-    open(dst, "w").write(raw)
+    open(os.path.join(dst_dir, "shows.json"), "w").write(raw)
     shows = updated = None
     try:
         doc = json.loads(raw)
@@ -67,7 +69,8 @@ for venue in sorted(os.listdir(root)):
         "updated_at": updated, "show_count": len(shows or []),
         "sha256_16": hashlib.sha256(raw.encode()).hexdigest()[:16],
     })
-open(os.path.join(data, "manifest.json"), "w").write(json.dumps(manifest, indent=2) + "\n")
+with open(os.path.join(data, "manifest.json"), "w") as f:
+    f.write(json.dumps(manifest, indent=2) + "\n")
 print("staged", len(manifest["venues"]), "venues")
 PY
 
