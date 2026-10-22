@@ -48,6 +48,19 @@ VENUES = {
                     "venue_dir": os.path.join(ROOT, "frost")},
     "chapel":      {"name": "The Chapel", "city": "San Francisco, CA",
                     "venue_dir": os.path.join(ROOT, "chapel")},
+    "bellyup":     {"name": "Belly Up", "city": "Solana Beach, CA",
+                    "venue_dir": os.path.join(ROOT, "bellyup")},
+    "thesound":    {"name": "The Sound", "city": "Del Mar, CA",
+                    "venue_dir": os.path.join(ROOT, "thesound")},
+    "thecasbah":   {"name": "The Casbah", "city": "San Diego, CA",
+                    "venue_dir": os.path.join(ROOT, "thecasbah")},
+    "theobservatory": {"name": "The Observatory North Park",
+                       "city": "San Diego, CA",
+                       "venue_dir": os.path.join(ROOT, "theobservatory")},
+    "musicbox":    {"name": "Music Box SD", "city": "San Diego, CA",
+                    "venue_dir": os.path.join(ROOT, "musicbox")},
+    "humphreys":   {"name": "Humphreys by the Bay", "city": "San Diego, CA",
+                    "venue_dir": os.path.join(ROOT, "humphreys")},
 }
 
 def venue_pills(key, data):
