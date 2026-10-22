@@ -326,6 +326,14 @@ def main():
                     if len(cc) > len(hl) and cc.startswith(hl):
                         head = c
                         break
+            # the re-keyed act sits INSIDE the statused page line
+            # (head "Dogma" matches the line "POSTPONED: Dogma")
+            if not head and len(hl) >= 4:
+                for c in cands:
+                    cc = re.sub(r"\s+", " ", c).strip().lower()
+                    if hl in cc:
+                        head = c
+                        break
             if head:
                 break
         if head is None:  # fall back to the old heuristics
