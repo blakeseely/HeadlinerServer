@@ -66,6 +66,9 @@ def main():
         # show_title so the real act resolves in Apple Music.
         head_name, tail = _split_headliner(raw_head)
         tour = tail
+        # A status-word headliner (POSTPONED / CANCELED) is a marker, not an
+        # artist — the real act is the tour-tail. Re-key BEFORE the lookup.
+        head_name, tour, status_note = build.rekey_status_headliner(head_name, tour)
         head = apple_music.artist_obj(head_name, lookup)
         support = split_support(r.get("support"), lookup)
 
@@ -76,6 +79,7 @@ def main():
             support_artists=support,
             multi_artist=bool(support) or "&" in (head_name or ""),
             show_title=tour,
+            note=status_note,
             date=r.get("date"),
             doors=r.get("doors"),
             show_time=r.get("show_time"),

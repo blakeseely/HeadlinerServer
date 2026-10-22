@@ -83,8 +83,6 @@ OVERRIDES = {
         headline=["@NICKCHEO"], show_title="The *TOUR* The *MOVIE*"),
     key("Swervedriver raise at 35"): dict(
         headline=["Swervedriver"], show_title="Raise at 35"),
-    key("POSTPONED: Dogma"): dict(
-        headline=["Dogma"], note="Postponed"),
 }
 
 
@@ -154,9 +152,36 @@ def strip_set_format(name):
     return name.strip(), None
 
 
+def _name_key(n):
+    """Loose name identity (alnum + space, lower) for equality tests."""
+    return re.sub(r"[^a-z0-9@ ]", "", (n or "").lower()).strip()
+
+
+STATUS_WORDS = {"POSTPONED", "CANCELED", "CANCELLED"}
+
+
+def rekey_status_headliner(headline, show_title):
+    """A status word in the headliner slot is a marker, never an artist.
+
+    "POSTPONED - Sawyer Hill" / "POSTPONED: Dogma" => the real act is the
+    show title. Returns (headline, show_title, note_fragment); the re-key
+    happens here, inside parse_title, BEFORE the Apple Music / Spotify
+    lookups so the real act is what gets looked up (a real Apple Music
+    artist named "Postponed" exists and used to be happily linked).
+    """
+    note = None
+    if (headline or []) and show_title:
+        h0 = re.sub(r"\s+", " ", headline[0]).strip().upper()
+        s0 = re.sub(r"\s+", " ", show_title).strip()
+        if h0 in STATUS_WORDS and _name_key(s0) != _name_key(h0):
+            note = h0.capitalize()
+            return [s0], None, note
+    return headline, show_title, None
+
+
 def parse_title(tag, list_name):
     out = {"multi_artist": False, "show_title": None, "set_format": None,
-           "note": None, "headline": [], "support": []}
+           "note": None, "headline": [], "support": [], "presenters": []}
     t = clean_tag(tag) or (list_name or "").strip()
     if not t:
         out["headline"] = [list_name or ""]
@@ -183,7 +208,26 @@ def parse_title(tag, list_name):
                 out["note"] = rest
             else:
                 out["show_title"] = rest.rstrip("!").strip() or None
-            return out
+            return _fin(out)
+
+    # 1b) colon => "ARTIST: SHOW TITLE"  (independent bills tour shows this
+    #     way, e.g. "POSTPONED: Dogma"). A "Presents" lead becomes the
+    #     presenter, not the artist.
+    m = re.match(r"^(.*?)\s*:\s*(.+)$", name)
+    if m:
+        artist, rest = m.group(1).strip(), m.group(2).strip()
+        if valid_name(artist):
+            pres = None
+            if re.search(r"\bPRESENTS?\b", artist, re.I):
+                pres = artist.rstrip(":").strip()
+                artist = re.sub(r"\s*PRESENTS?\s*:\s*", " ", artist, flags=re.I).strip()
+                if not valid_name(artist):
+                    pres = None
+                    artist = m.group(1).strip()
+            out["headline"] = [artist]
+            out["presenters"] = [pres] if pres else []
+            out["show_title"] = rest.rstrip("!").strip() or None
+            return _fin(out)
 
     # 2) multi-act bill (with/+)
     bill = split_bill(name)
@@ -196,12 +240,26 @@ def parse_title(tag, list_name):
             rest = []
         for part in rest:
             out["support"].extend(p for p in split_support_part(part) if valid_name(p))
-        return out
+        return _fin(out)
 
     if bill and bill[0]:
         out["headline"] = [bill[0]]
     else:
         out["headline"] = [name]
+    return _fin(out)
+
+
+def _fin(out):
+    """Apply the status-word re-key on every return path: a POSTPONED/
+    CANCELED headliner is a marker — the real act is the show title — and
+    must be re-keyed HERE (before the Apple Music / Spotify lookups, which
+    key off `headline`)."""
+    hl, st, note = rekey_status_headliner(out.get("headline"), out.get("show_title"))
+    if hl != out.get("headline") or st != out.get("show_title"):
+        out["headline"] = hl
+        out["show_title"] = st
+        if note:
+            out["note"] = note
     return out
 
 
@@ -260,6 +318,14 @@ def main():
                 if re.sub(r"\s+", " ", c).strip().lower() == hl:
                     head = c
                     break
+            # a status-word form keeps the name as a prefix of the page line
+            # (head "POSTPONED" matches the line "POSTPONED - Sawyer Hill")
+            if not head:
+                for c in cands:
+                    cc = re.sub(r"\s+", " ", c).strip().lower()
+                    if len(cc) > len(hl) and cc.startswith(hl):
+                        head = c
+                        break
             if head:
                 break
         if head is None:  # fall back to the old heuristics
@@ -337,7 +403,7 @@ def main():
             support_artists=[apple_music.artist_obj(p, lookup) for p in support],
             multi_artist=pt["multi_artist"],
             show_title=pt["show_title"] or tour,
-            presenters=[presenter] if presenter else [],
+            presenters=([presenter] if presenter else pt.get("presenters", [])),
             set_format=pt["set_format"],
             date=iso,
             doors=ev.get("doors_raw"),

@@ -54,6 +54,59 @@ SHOULD_FIELDS = [
 MISSING_BAD = ("date", "headline_artists")
 
 
+def _name_key(n):
+    import re as _re
+    return _re.sub(r"[^a-z0-9@ ]", "", (n or "").lower()).strip()
+
+
+STATUS_WORDS = {"POSTPONED", "CANCELED", "CANCELLED"}
+
+
+def rekey_status_headliner(name, show_title):
+    """A status word in the headliner slot is a marker, never an artist.
+
+    "POSTPONED - Sawyer Hill" / "POSTPONED: Dogma" => the real headliner is
+    the show title. Returns (name, show_title, note_fragment); the re-key
+    belongs in the venue's build, BEFORE the Apple Music / Spotify lookup
+    (which keys off the billed name) — so the real act is what gets looked
+    up, not the literal word (a real Apple Music artist named "Postponed"
+    exists and used to be happily linked). show() also applies
+    _promote_status_headliner() as a safety net for builds that re-key
+    later. Idempotent.
+    """
+    if not name or not show_title:
+        return name, show_title, None
+    n0 = str(name).strip()
+    s0 = str(show_title).strip()
+    if n0.upper() in STATUS_WORDS and _name_key(s0) != _name_key(n0):
+        return s0, None, n0.upper().capitalize()
+    return name, show_title, None
+
+
+def _promote_status_headliner(rec):
+    """Safety net for builds that shape the artist before re-keying:
+    re-key a status-word headliner to the show title and reset the bogus
+    lookup fields (a real Apple artist named "Postponed" exists)."""
+    heads = rec.get("headline_artists") or []
+    st = (rec.get("show_title") or "").strip()
+    if not st or len(heads) != 1 or not isinstance(heads[0], dict):
+        return
+    nm, st2, note = rekey_status_headliner(heads[0].get("name"), st)
+    if nm == heads[0].get("name"):
+        return
+    a = heads[0]
+    a["name"] = nm
+    for k in ("apple_music", "spotify"):
+        a[k] = None
+    a["found"] = False
+    a["confidence"] = None
+    a["matched"] = None
+    a["match_label"] = None
+    rec["show_title"] = st2
+    if note and not rec.get("note"):
+        rec["note"] = note
+
+
 def show(event_type=None, needs_review=False,
          headline_artists=None, support_artists=None, multi_artist=False,
          show_title=None, presenters=None, set_format=None,
@@ -62,7 +115,7 @@ def show(event_type=None, needs_review=False,
          room=None, age_rating=None, note=None, description=None):
     """Build one show record in the shared shape (missing values -> None)."""
     import datetime as _dt
-    return {
+    rec = {
         "event_type": event_type,
         "needs_review": bool(needs_review),
         "headline_artists": list(headline_artists or []),
@@ -83,6 +136,8 @@ def show(event_type=None, needs_review=False,
         "note": note,
         "description": description,
     }
+    _promote_status_headliner(rec)
+    return rec
 
 
 def normalize(shows):
