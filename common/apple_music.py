@@ -238,13 +238,13 @@ def _split_compound(name):
 
 
 def _amc_search(term):
-    """Fallback search via the user's `amc` Apple Music CLI.
+    """Catalog search via the user's `amc` Apple Music CLI — the PRIMARY path.
 
-    The web iTunes /search API gets intermittently 403-blocked by Apple's
-    bot layer (it can 403 ALL terms at once, from both curl and a real
-    browser). The Apple Music app's own catalog API (what `amc` drives) is
-    not affected. Returns the same result-shape as search() — one record per
-    hit with the fields url_of() needs — or None if amc is unavailable.
+    `amc` drives the Apple Music app's own catalog API, which is not
+    bot-walled (the web iTunes /search endpoint gets intermittently
+    403-blocked by Apple's bot layer, and can 403 ALL terms at once). Returns
+    the same result-shape as the web API — one record per hit with the fields
+    url_of()/confidence() need — or None if amc is unavailable/errored.
     """
     import shutil, subprocess
     if not shutil.which("amc"):
@@ -264,37 +264,97 @@ def _amc_search(term):
         aid = a.get("id")
         res.append({
             "artistName": a.get("name"),
+            "artistId": aid,
+            # id-only URL as the last resort (canonicalized below when the
+            # lookup API responds)
             "artistLinkUrl": f"https://music.apple.com/us/artist/{aid}" if aid else None,
         })
-    return res  # [] (searched, genuinely none) NOT None (search failed)
+    if not res:
+        return res
+    return _canonicalize_ids(res)
+
+
+def _canonicalize_ids(res):
+    """Upgrade amc-fallback hits (id-only URLs, no slug) to canonical
+    music.apple.com/artist/<slug>/<id> links via the iTunes /lookup API,
+    which is keyed by catalog id and NOT bot-walled like /search.
+
+    Batches up to 20 ids per request. Any hit the lookup can't resolve
+    keeps its id-only URL (still a working, unambiguous deep link).
+    """
+    import time, urllib.parse, urllib.request
+    wanted = [r.get("artistId") for r in res if r.get("artistId")]
+    if not wanted:
+        return res
+    by_id = {}
+    for i in range(0, len(wanted), 20):
+        chunk = ",".join(str(x) for x in wanted[i:i + 20])
+        url = "https://itunes.apple.com/lookup?" + urllib.parse.urlencode({"id": chunk})
+        data = None
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(url, headers={
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                  "Chrome/125.0 Safari/537.36",
+                    "Accept-Language": "en-US,en;q=0.9"})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    data = json.loads(r.read().decode())
+                break
+            except Exception:
+                if attempt == 1:
+                    break
+                time.sleep(1.0)
+        if not data:
+            continue
+        for r0 in data.get("results", []):
+            aid = r0.get("artistId")
+            if aid and r0.get("artistName"):
+                by_id[str(aid)] = r0
+    for r in res:
+        m = by_id.get(str(r.get("artistId")))
+        if m:
+            u = url_of(m)
+            if u and u.count("/") >= 5:  # has the slug, not just the id
+                r["artistName"] = m.get("artistName") or r.get("artistName")
+                r["artistLinkUrl"] = u
+    return res
 
 
 def search(term):
     """Search the artist catalog. Returns a list of hits, or None when the
-    search FAILED (both the web API and the amc fallback failed) — a search
+    search FAILED (both the amc catalog and the web API failed) — a search
     that succeeded but found nothing returns an empty list, so callers can
-    tell "not in the catalog" (honest, terminal) from "retry later"."""
+    tell "not in the catalog" (honest, terminal) from "retry later".
+
+    Order: the `amc` Apple Music CLI first (the app's own catalog API — not
+    bot-walled, so it won't hit the /search 403s), then the web iTunes
+    /search as the fallback for machines without amc.
+    """
+    main = _amc_search(term)
+    if main is not None:
+        return main
     import time, urllib.parse, urllib.request
     url = "https://itunes.apple.com/search?" + urllib.parse.urlencode(
         {"term": term, "media": "music", "entity": "musicArtist", "limit": 15})
     data = None
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(url, timeout=10) as r:
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                              "AppleWebKit/537.36 (KHTML, like Gecko) "
+                              "Chrome/125.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9"})
+            with urllib.request.urlopen(req, timeout=10) as r:
                 data = json.loads(r.read().decode())
             break
         except Exception:
             if attempt == 2:
                 break
             time.sleep(2.0)
-    if data is not None:
-        return data.get("results", [])
-    # Blocked (403) or the API is down: fall back to the Apple Music app's
-    # own catalog search via amc, which is not bot-walled.
-    fb = _amc_search(term)
-    if fb is not None:
-        return fb
-    return None
+    if data is None:
+        return None
+    return data.get("results", [])
 
 
 def url_of(res):
