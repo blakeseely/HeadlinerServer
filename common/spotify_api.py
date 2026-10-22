@@ -40,6 +40,10 @@ LINK_FLOOR = 0.80
 _token_lock = threading.Lock()
 _token = None          # current access token
 _token_expires = 0.0   # epoch seconds
+# Daily quota exhausted (429 with retry-after > 60min): stop issuing
+# searches for the rest of this process so a --full run fails FAST instead
+# of burning an hour of wall time (and rate-limit backoff sleeps) on 429s.
+_quota_dead_until = 0.0
 
 
 def load_credentials():
@@ -97,6 +101,9 @@ def search(term):
     so a miss on the full name is covered by lookup() searching the
     variants (lead name, DJ-stripped, paren-stripped) and the compound
     parts — each adding up to 5 more candidates to score."""
+    global _quota_dead_until
+    if time.time() < _quota_dead_until:
+        return None  # daily quota known-dead: fail fast, let callers retry next run
     tok = _get_token()
     if not tok:
         return []
@@ -112,6 +119,14 @@ def search(term):
                     for a in d.get("artists", {}).get("items", []) if a.get("id")]
         except urllib.error.HTTPError as e:
             if e.code in (429, 500, 502, 503):
+                ra = e.headers.get("Retry-After")
+                if e.code == 429 and ra and int(ra) > 3600:
+                    # daily quota exhausted (hour-scale retry): stop now —
+                    # every further search will 429 until the reset
+                    _quota_dead_until = time.time() + int(ra)
+                    print(f"  ! spotify daily quota exhausted "
+                          f"(retry-after {ra}s): stopping searches", flush=True)
+                    return None
                 time.sleep(2.0 * (attempt + 1))
                 continue
             if e.code == 401:  # token died mid-run: refresh once, retry

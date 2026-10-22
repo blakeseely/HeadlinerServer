@@ -57,11 +57,14 @@ def main():
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     out = {}
+    prior = {}
     if os.path.exists(OUT):
         try:
             out = json.load(open(OUT))
         except Exception:
             out = {}
+        prior = dict(out)  # keep the pre-run cache so a failed re-lookup
+                            # (daily quota) can't clobber a good link
 
     done = lambda a: (a in out
                       and out[a].get("status") in
@@ -83,7 +86,12 @@ def main():
                 print(f"  {n}/{len(todo)} done", flush=True)
 
     for a in todo:
-        out[a] = results[a]
+        r = results[a]
+        if (r.get("status") == "error" and prior.get(a, {}).get("link")
+                and prior[a].get("status") in ("exact", "likely")):
+            r = dict(prior[a])  # re-lookup failed (e.g. daily quota):
+                                # keep the old good link, don't clobber it
+        out[a] = r
         json.dump(out, open(OUT, "w"), indent=2, ensure_ascii=False)
 
     print("DONE:", dict(Counter(out[a]["status"] for a in real if a in out)))

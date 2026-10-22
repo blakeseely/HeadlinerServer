@@ -49,17 +49,21 @@ def main():
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     out = {}
+    prior = {}
     if os.path.exists(OUT):
         try:
             out = json.load(open(OUT))
         except Exception:
             out = {}
+        prior = dict(out)  # keep the pre-run cache: if a re-lookup of a
+                            # previously-good artist FAILS (error), the good
+                            # result is preserved, never clobbered by None
 
     done = lambda a: (a in out and out[a].get("status") in
                       ("exact", "likely", "maybe", "no_exact"))
     todo = [a for a in real if (force or not done(a))]
     if force:
-        out = {}  # full re-run: start the cache clean
+        out = {}  # full re-run: start the cache clean (prior kept in `prior`)
     print(f"total {len(real)} real artists, {len(real)-len(todo)} cached, "
           f"{len(todo)} to fetch", flush=True)
 
@@ -70,7 +74,11 @@ def main():
             results[futs[fut]] = fut.result()
 
     for i, a in enumerate(todo):
-        out[a] = results[a]
+        r = results[a]
+        if (r.get("status") == "error" and prior.get(a, {}).get("link")
+                and prior[a].get("status") in ("exact", "likely")):
+            r = dict(prior[a])  # re-lookup failed: keep the old good link
+        out[a] = r
         if (i + 1) % 10 == 0 or i + 1 == len(todo):
             json.dump(out, open(OUT, "w"), indent=2, ensure_ascii=False)
     json.dump(out, open(OUT, "w"), indent=2, ensure_ascii=False)

@@ -34,7 +34,7 @@ The Warfield bills live music only (rock / alt / K-pop / electronic /
 theater-musical tours), so the build classifies everything `music` and
 links every act to Apple Music.
 """
-import os, re, html, json, time, urllib.request
+import os, re, html, json, time, gzip, zlib, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -55,7 +55,12 @@ def fetch(url, retries=2):
             req = urllib.request.Request(
                 url, headers={"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"})
             with urllib.request.urlopen(req, timeout=30) as r:
-                return r.read().decode("utf-8", "replace")
+                body = r.read()
+                if body[:2] == b"\x1f\x8b":  # gzip magic — some servers
+                    body = gzip.decompress(body)  # send compressed without
+                elif body[:1] == b"\x78":    # raw deflate
+                    body = zlib.decompress(body, -zlib.MAX_WBITS)
+                return body.decode("utf-8", "replace")
         except Exception as e:
             last = e
             time.sleep(1.5)

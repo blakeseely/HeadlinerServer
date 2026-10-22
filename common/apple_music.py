@@ -118,12 +118,22 @@ def _search_variants(name):
 
 
 def _score_bases(name):
-    """Name forms to score a candidate against. A parenthetical is descriptive
-    ('of Moon Hooch'), so the stripped core ('Michael Wilbur') is a valid
-    comparison basis that can reach 1.0 when the catalog entry is the core."""
+    """Name forms to score a candidate against.
+
+    * A parenthetical is descriptive ('of Moon Hooch'), so the stripped core
+      ('Michael Wilbur') is a valid comparison basis that can reach 1.0 when
+      the catalog entry is the core.
+    * A billed title's HEAD can be a scoring basis when it is a prefix of the
+      whole bill ('Cameron Winter' in 'Cameron Winter at Carnegie Hall',
+      'Nora Brown' in 'Nora Brown with Stephanie Coleman'): the catalog entry
+      is the core act and the rest is a venue/companion descriptor.
+    """
     bases = [name]
     if "(" in name:
         bases.append(re.sub(r"\s+", " ", strip_paren(name)).strip())
+    head = _prefix_head(name)
+    if head and head.lower() != name.lower():
+        bases.append(head)
     seen, out = set(), []
     for v in bases:
         k = norm_accentless(v)
@@ -131,6 +141,23 @@ def _score_bases(name):
             seen.add(k)
             out.append(v)
     return out
+
+
+def _prefix_head(name):
+    """The leading words of a billed name that are followed by a descriptor
+    ('at <venue>', 'with <person>', 'x <person>', '+ <person>') — the core
+    act. Returns None when the name carries no such trailing descriptor.
+    ('Cameron Winter at Carnegie Hall' -> 'Cameron Winter'.)"""
+    t = re.sub(r"\s+", " ", name).strip()
+    m = re.search(r"\s+(?:at|with|x|\+)\s+", t, re.IGNORECASE)
+    if m:
+        head = t[:m.start()].strip(" .")
+        if len(head.split()) >= 1 and len(head) >= 3:
+            return head
+    return None
+
+
+
 
 
 def score_pair(query, cand):
@@ -141,6 +168,27 @@ def score_pair(query, cand):
         return 0.0
     if q == c:
         return 1.0
+    # Single-token vs single-token, edit distance exactly 1 (one char
+    # inserted/deleted/substituted: "Abhora" vs "Ahora"): two near-identical
+    # words are almost always DIFFERENT acts — one letter off is the classic
+    # auto-link trap. The raw SequenceMatcher ratio (0.909) would clear the
+    # link floor; treat it as a non-match instead. Multi-token names are
+    # unaffected (their legit "lead" partial matches keep scoring normally).
+    qts, cts = tokens(q), tokens(c)
+    if len(qts) == 1 and len(cts) == 1:
+        t, u = next(iter(qts)), next(iter(cts))
+        # Insertion/deletion (one is one char longer): near-identical words
+        # one letter off ("Abhora" vs "Ahora") are different acts -> no match.
+        if abs(len(t) - len(u)) == 1:
+            return 0.0
+        # Same length: a letter->letter substitution one position off is
+        # likewise a different act; a letter<->DIGIT substitution is a
+        # rendering variant of the SAME act ("Fifteenoeight" vs
+        # "Fifteen0eight") — let that fall through to the normal rules.
+        if len(t) == len(u):
+            diff = [(i, x, y) for i, (x, y) in enumerate(zip(t, u)) if x != y]
+            if len(diff) == 1 and diff[0][1].isalpha() and diff[0][2].isalpha():
+                return 0.0
     # A solo DJ is a one-act billing; a multi-person band entry sharing a
     # first name ("harry" in "Henry Lowther, Harry Beckett, Peter Duncan")
     # is a DIFFERENT act. Never link a "DJ X" bill to a band.
@@ -161,7 +209,16 @@ def score_pair(query, cand):
     if len(qt) == 1:
         t = list(qt)[0]
         if len(t) >= 5 and t in c.replace(" ", "") and not (_is_bill and not _c_bill):
-            return 0.95
+            # The token must sit at the START of the candidate (word-boundary
+            # aware) or exactly BE it: a mid-name substring is a different
+            # act, not the same one ("Abhora" inside "8D Ahora" must not link,
+            # while "Ahora Mazda" contains "Ahora" as a real prefix — that
+            # pair is still flagged as a near-miss by the floor, and the
+            # reviewer sees it).
+            i = c.replace(" ", "").find(t)
+            if i == 0 and (len(c.replace(" ", "")) == len(t)
+                            or not c.replace(" ", "")[len(t)].isalnum()):
+                return 0.95
     # A single-token catalog candidate can only be a confident match when the
     # billed name is itself one token (or it exactly equals the full lead).
     # Otherwise it is a fragment of a longer bill -> fall through (low score).
@@ -328,12 +385,31 @@ def search(term):
     tell "not in the catalog" (honest, terminal) from "retry later".
 
     Order: the `amc` Apple Music CLI first (the app's own catalog API — not
-    bot-walled, so it won't hit the /search 403s), then the web iTunes
-    /search as the fallback for machines without amc.
+    bot-walled, so it won't hit the /search 403s). If amc is unavailable,
+    or it searches successfully but comes up EMPTY, the web iTunes /search
+    runs as the secondary source — an empty amc result must not be treated
+    as authoritative "not in the catalog" when the web catalog disagrees
+    (the app catalog has occasional blind spots; a web hit means the
+    artist exists in Apple's ecosystem and is linkable).
     """
     main = _amc_search(term)
-    if main is not None:
+    if main:
         return main
+    if main is not None:
+        # amc searched fine but found nothing: cross-check the web; only a
+        # web hit overrides the empty amc result.
+        web = _web_search(term)
+        if web:
+            return web
+        return main  # both agree: genuinely absent — honest, terminal
+    return _web_search(term)
+
+
+def _web_search(term):
+    """The bot-walled web iTunes /search API (secondary source). Returns a
+    list of hits (possibly empty), or None when the search failed after
+    retries (403/bot wall/down) — an empty list means the web catalog
+    genuinely found nothing for the term."""
     import time, urllib.parse, urllib.request
     url = "https://itunes.apple.com/search?" + urllib.parse.urlencode(
         {"term": term, "media": "music", "entity": "musicArtist", "limit": 15})
