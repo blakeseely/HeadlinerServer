@@ -89,6 +89,7 @@ def main():
         "event_types": {"music": len(shows)},
         "apple_music": apple_music.apple_music_stats(shows),
     }
+    build.apply_spotify_lookup(shows, os.path.join(CACHE, "spotify_lookup.json"))
     path = build.run_build(VENUE, VENUE_ID, VENUE_URL, SOURCE_URL, shows, stats)
     am = stats["apple_music"]
     print(f"built {len(shows)} shows -> {path}")

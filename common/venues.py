@@ -33,6 +33,7 @@ VENUES = {
     "independent": {
         "key": "independent",
         "name": "The Independent",
+        "has_spotify_lookup": False,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Mission District",
@@ -44,6 +45,7 @@ VENUES = {
     "castro": {
         "key": "castro",
         "name": "The Castro Theatre",
+        "has_spotify_lookup": False,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Castro",
@@ -57,6 +59,7 @@ VENUES = {
     "fillmore": {
         "key": "fillmore",
         "name": "The Fillmore",
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Fillmore",
@@ -68,6 +71,7 @@ VENUES = {
     "gamh": {
         "key": "gamh",
         "name": "Great American Music Hall",
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "SoMa",
@@ -79,6 +83,7 @@ VENUES = {
     "regency": {
         "key": "regency",
         "name": "The Regency Ballroom",
+        "has_spotify_lookup": False,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Castro",
@@ -90,6 +95,7 @@ VENUES = {
     "augusthall": {
         "key": "augusthall",
         "name": "August Hall",
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "South Beach",
@@ -101,6 +107,7 @@ VENUES = {
     "warfield": {
         "key": "warfield",
         "name": "The Warfield Theatre",
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "SoMa",
@@ -112,6 +119,7 @@ VENUES = {
     "cafedunord": {
         "key": "cafedunord",
         "name": "Cafe du Nord",
+        "has_spotify_lookup": False,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Presidio Heights",
@@ -123,6 +131,7 @@ VENUES = {
     "foxoakland": {
         "key": "foxoakland",
         "name": "Fox Theater (Oakland)",
+        "has_spotify_lookup": False,
         "city": "Oakland, CA",
         "metro": SF_Metro,
         "neighborhood": "West Oakland",
@@ -134,6 +143,7 @@ VENUES = {
     "greek": {
         "key": "greek",
         "name": "Greek Theatre",
+        "has_spotify_lookup": False,
         "city": "Berkeley, CA",
         "metro": SF_Metro,
         "neighborhood": None,
@@ -145,6 +155,7 @@ VENUES = {
     "brickandmortar": {
         "key": "brickandmortar",
         "name": "Brick & Mortar Music Hall",
+        "has_spotify_lookup": False,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Mission District",
@@ -156,6 +167,7 @@ VENUES = {
     "frost": {
         "key": "frost",
         "name": "Frost Amphitheater",
+        "has_spotify_lookup": True,
         "city": "Palo Alto, CA",
         "metro": SF_Metro,
         "neighborhood": None,
@@ -167,6 +179,7 @@ VENUES = {
     "chapel": {
         "key": "chapel",
         "name": "The Chapel",
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Mission District",

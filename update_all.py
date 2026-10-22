@@ -167,6 +167,21 @@ def update_venue(v, full, refresh):
     else:
         print("      (no Apple Music matching for this venue)")
 
+    # 3b. Spotify API lookup — venues whose own site publishes NO links.
+    # Resume by default (cache/spotify_lookup.json); --full re-queries all.
+    # Venue-published links always win over a searched one (merge rule in
+    # the build). No keys in .env = graceful SKIP, never a failure.
+    if v.get("has_spotify_lookup"):
+        rc, out = run(f"python3 ../common/spotify_lookup.py {'--full' if full else ''}", d)
+        if rc != 0:
+            print("  !! spotify lookup FAILED — continuing with cached links",
+                  file=sys.stderr)
+        for ln in out.splitlines():
+            if ln.startswith(("total", "SKIP")):
+                print(f"       🎧 {ln.strip()}")
+    else:
+        print("      (site-published Spotify links — no API lookup)")
+
     # 4. rebuild so the JSON carries the latest links
     rc, _ = run("python3 build.py", d)
     if rc != 0:

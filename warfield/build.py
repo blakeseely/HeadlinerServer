@@ -180,6 +180,7 @@ def main():
         "event_types": dict(Counter(s["event_type"] for s in shows)),
         "apple_music": apple_music.apple_music_stats(shows),
     }
+    common_build.apply_spotify_lookup(shows, os.path.join(ROOT, "cache", "spotify_lookup.json"))
     common_build.run_build(VENUE, VENUE_ID, VENUE_URL, SOURCE_URL, shows, stats)
 
     print(f"built {len(shows)} shows -> {DST}")

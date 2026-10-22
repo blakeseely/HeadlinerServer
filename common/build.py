@@ -23,6 +23,7 @@ import os
 from . import apple_music
 from .apple_music import date_label
 from . import venues
+from . import spotify_api
 
 # --------------------------------------------------------------------------
 # The shared show record shape (superset; null where a venue has no field)
@@ -140,3 +141,17 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
     with open(path, "w") as f:
         json.dump(doc, f, indent=2, ensure_ascii=False)
     return path
+
+
+def apply_spotify_lookup(shows, cache_path):
+    """Attach Spotify API-lookup links (from <venue>/cache/spotify_lookup.json)
+    to artists that carry no venue-published link. Called by the builds of
+    venues whose sites publish nothing (registry `has_spotify_lookup`).
+
+    Venue-published links ALWAYS win over a searched one: merge_lookup()
+    skips any artist that already has a link. Below-floor API matches are
+    not applied (honest null; the reviewer gets the near-miss label).
+    Returns the number of links applied (0 when the cache is absent).
+    """
+    cache = apple_music.load_lookup_cache(cache_path)
+    return spotify_api.merge_lookup(shows, cache)
