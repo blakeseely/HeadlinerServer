@@ -242,13 +242,33 @@ def main():
                 break
         cands = [c for c in (lines[:di] if di is not None else lines[:4])
                  if not (ANNOUNCE.search(c) and "TOUR" not in c.upper())]
+        # canonical bill (from the <title>) — the reliable headliner identity.
+        # Computed here (not after the slot) so the headliner line can be
+        # matched against the pre-date lines to open the support slot.
+        pt = parse_title(ev.get("title_tag"), ev.get("name"))
+
+        # Headliner line = the pre-date line that IS the canonical headliner.
+        # (The old all-caps-only test fails on names like "Fink", so the bare
+        # last-line fallback would wrongly pick the *support act* as headliner
+        # and the support slot — and with it the act — would come out empty.)
         head = None
-        for c in reversed(cands):
-            if c and any(ch.isalpha() for ch in c) and all(not ch.isalpha() or ch.isupper() for ch in c):
-                head = c
+        for h in pt["headline"]:
+            hl = re.sub(r"\s+", " ", h).strip().lower()
+            if not hl:
+                continue
+            for c in cands:
+                if re.sub(r"\s+", " ", c).strip().lower() == hl:
+                    head = c
+                    break
+            if head:
                 break
-        if head is None and cands:
-            head = cands[-1]
+        if head is None:  # fall back to the old heuristics
+            for c in reversed(cands):
+                if c and any(ch.isalpha() for ch in c) and all(not ch.isalpha() or ch.isupper() for ch in c):
+                    head = c
+                    break
+            if head is None and cands:
+                head = cands[-1]
         hi = lines.index(head) if head in lines else None
 
         # ---- support acts: the page's support slot (lines strictly between head and date) ----
@@ -275,10 +295,8 @@ def main():
             deduped.append(s)
         slot = deduped
 
-        # ---- title parsing ----
-        pt = parse_title(ev.get("title_tag"), ev.get("name"))
-
-        # support = union of page slot + bill-derived, de-duped
+        # ---- support = union of page slot + bill-derived, de-duped ----
+        # (pt was already computed above to anchor the headliner line.)
         seen = set()
         support = []
         heads_l = [re.sub(r"\s+", " ", h).strip().lower() for h in pt["headline"]]
