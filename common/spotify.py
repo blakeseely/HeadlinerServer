@@ -202,9 +202,17 @@ def stats(shows):
         for a in (s.get("headline_artists") or []) + (s.get("support_artists") or []):
             if isinstance(a, dict) and a.get("name"):
                 seen.setdefault(a["name"], a)
+    def src(a):
+        # A link with no explicit source tag = venue-scraped (the 7
+        # publishing venues attach it inline in their builds; only the
+        # API-lookup path marks "api").
+        return a.get("spotify_source") if a.get("spotify_source") else (
+            "venue" if a.get("spotify") else None)
     return {
         "unique_artists": len(seen),
         "linked": sum(1 for a in seen.values() if a.get("spotify")),
+        "venue": sum(1 for a in seen.values() if src(a) == "venue"),
+        "api": sum(1 for a in seen.values() if src(a) == "api"),
         "shows_with_link": sum(1 for s in shows
                                if any(a.get("spotify") for a in s.get("headline_artists", [])
                                       if isinstance(a, dict))),
@@ -230,6 +238,7 @@ def merge_shows(shows, linkmap):
             for ln, url in lm.items():
                 if norm_name(ln) == norm_name(a.get("name")):
                     a["spotify"] = url
+                    a["spotify_source"] = "venue"  # the venue's own published link
                     if url:
                         total += 1
                     break

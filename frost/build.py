@@ -32,7 +32,7 @@ Single room (the Frost Amphitheater) -> `room` stays None.
 import os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
-from common import build, apple_music
+from common import build, apple_music, spotify
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -167,6 +167,8 @@ def main():
         "apple_music": apple_music.apple_music_stats(shows),
     }
     build.apply_spotify_lookup(shows, os.path.join(CACHE, "spotify_lookup.json"))
+
+    stats["spotify"] = spotify.stats(shows)
     path = build.run_build(VENUE, VENUE_ID, VENUE_URL, SOURCE_URL, shows, stats)
     am = stats["apple_music"]
     print(f"built {len(shows)} shows -> {path}"

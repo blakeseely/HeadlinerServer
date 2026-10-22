@@ -154,9 +154,11 @@ function achip(a, supp, detail){
       pills+=`<a class="sp-pill apple" href="${esc(link)}" target="_blank" title="${esc(lt)}">Apple Music</a>`;
     }
     if(sp){
-      pills+=`<a class="sp-pill spotify" href="${esc(sp)}" target="_blank" title="Spotify">Spotify</a>`;
+      const st=isObj? a.spotify_source : null;
+      let stt=st==="api"?"Spotify (searched)":st==="venue"?"Spotify (venue site)":"Spotify";
+      pills+=`<a class="sp-pill spotify" href="${esc(sp)}" target="_blank" title="${esc(stt)}">Spotify</a>`;
     }
-    if(!pills && (link||sp||!found) && HAS_AM && isObj && !found)
+    if(!pills && !found && HAS_AM && isObj && (link||!a.spotify))
       tip="No confident Apple Music match";
     if(!pills) return `<span class="chip${multi?" multi":""}" title="${esc(tip)}">${esc(name)}</span>`;
     return `<span class="chip${multi?" multi":""}"><span>${esc(name)}</span><span class="sp-pills">${pills}</span></span>`;
@@ -279,10 +281,15 @@ if(HAS_AM){
 } else {
   document.getElementById("amstat").style.display="none";
 }
-// Spotify pill: links scraped from the venue's own site (not a catalog search)
-const SP=(STATS.spotify||{}).linked;
-if(SP){
-  document.getElementById("spstat").innerHTML=`🎧 Spotify: <b>${SP}</b> linked (from the venue's site)`;
+// Spotify stat line: worded by source — venue-published links, API-searched
+// links, or a mix.
+const SPB=STATS.spotify||{};
+if(SPB.linked){
+  let note="";
+  if(SPB.venue&&SPB.api) note=` (${SPB.venue} venue · ${SPB.api} Spotify search)`;
+  else if(SPB.api) note=" (Spotify search)";
+  else if(SPB.venue) note=" (venue site)";
+  document.getElementById("spstat").innerHTML=`🎧 Spotify: <b>${SPB.linked}</b> linked${note}`;
 } else {
   document.getElementById("spstat").style.display="none";
 }
