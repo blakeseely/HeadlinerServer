@@ -20,10 +20,62 @@ Everything else — record shape, stats, JSON writer, viewer, picker —
 is shared and already there.
 """
 import os
+import re
+from collections import Counter
 from . import apple_music
-from .apple_music import date_label
+from .apple_music import date_label, relabel
 from . import venues
 from . import spotify_api
+
+
+def canonical_time(t):
+    """Light-touch time canonicalization ONLY: '7 PM' / '8:00PM' / '7:00 PM'
+    -> 'H:MM pm' (the feed's canonical form). Unparseable values pass through
+    unchanged — doors/show_time stay free strings (the venue's own text wins);
+    we only collapse case/case-space variants of the same moment."""
+    if not t or not isinstance(t, str):
+        return t
+    m = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?", t.strip(), re.I)
+    if not m:
+        return t
+    h, mi, ampm = int(m.group(1)), m.group(2) or "00", m.group(3).lower()
+    if not (1 <= h <= 12):
+        return t
+    return f"{h}:{mi} {ampm}m"
+
+
+# Pure case/separator duplicates of the real ticket states, folded to one
+# form. Only the duplicates the data actually shows; new raw values (a new
+# state the venue starts publishing) pass through un-mangled.
+_STATUS_CANON = {
+    "on sale": "on sale",
+    "on sale soon": "on sale soon",
+    "not on sale": "not on sale",
+    "sold out": "sold out",
+    "coming soon": "coming soon",
+    "presale": "presale",
+    "cancelled": "cancelled",
+    "waitlist": "waitlist",
+}
+
+
+def canonical_status(t):
+    """Collapse pure case/separator duplicates of ticket_status to one form;
+    every other value passes through verbatim (free string — the venue's own
+    wording is preserved, so 'PRESALE 10/22|29' stays as-is). This kills the
+    12-variant domain down to the real states while keeping raw wording
+    (H3/M-light)."""
+    if not t or not isinstance(t, str):
+        return t
+    norm = re.sub(r"[\s\-]+", " ", t.strip().lower())
+    return _STATUS_CANON.get(norm, t)
+
+
+def canonical_presenters(p):
+    """Strip stray trailing/leading dashes and collapse spaces in presenter
+    strings (L3: 'Young the Giant -' from a '<name> -' capture)."""
+    return [re.sub(r"[\s\-–—]+$", "", re.sub(r"^\s*[\-–—\s]+", "", re.sub(r"\s+", " ", p))).strip()
+            for p in (p or []) if isinstance(p, str) and re.sub(r"[\s\-–—]+", "", p)]
 
 # --------------------------------------------------------------------------
 # The shared show record shape (superset; null where a venue has no field)
@@ -140,22 +192,103 @@ def show(event_type=None, needs_review=False,
     return rec
 
 
+# --------------------------------------------------------------------------
+# Schema uniformity (enforced in ONE place — run_build/normalize — so every
+# venue's shows.json has the exact same shapes regardless of its adapter)
+# --------------------------------------------------------------------------
+# event_types is a CONTROLLED 4-value enum, reported in every file with all
+# four keys present (zeros included) so clients switch on a fixed key set.
+EVENT_TYPES = ("music", "comedy", "film", "other")
+
+
+def event_type_stats(shows):
+    """Uniform stats.event_types block: all four enum keys, zeros included."""
+    c = Counter()
+    for s in shows:
+        et = s.get("event_type")
+        if et in EVENT_TYPES:
+            c[et] += 1
+    return {k: c.get(k, 0) for k in EVENT_TYPES}
+
+
+def field_hints():
+    """Per-field schema hints for clients (the controlled-vs-raw contract).
+
+    controlled   — the value comes from a fixed vocabulary; safe to
+                   `switch`/filter on without normalization.
+    free_string  — text pulled from the venue's own page; it keeps the
+                   venue's spelling (we only collapse case/separator
+                   duplicates and strip capture artifacts). Clients that
+                   need a fixed vocabulary should normalize client-side.
+    """
+    return {
+        "event_type": "controlled",       # music | comedy | film | other
+        "needs_review": "bool",
+        "show_title": "free_string",
+        "set_format": "free_string",
+        "date": "date",                   # YYYY-MM-DD (or null)
+        "date_label": "date_label",       # 'Fri 2026-10-16' (display convenience)
+        "doors": "free_string",           # canonicalized to 'H:MM pm' when parseable
+        "show_time": "free_string",       # canonicalized to 'H:MM pm' when parseable
+        "ticket_link": "free_string",     # URL, or the venue's button text
+        "ticket_status": "free_string",   # case-folded, raw vocabulary otherwise
+        "room": "free_string",
+        "age_rating": "free_string",
+        "note": "free_string",
+        "description": "free_string",
+        "artist.apple_music": "url",
+        "artist.spotify": "url",
+        "artist.found": "bool",           # Apple Music match found
+        "artist.confidence": "float",     # null=not attempted, 0.0=no match, else 0-1
+        "artist.matched": "free_string",  # catalog artist name the link resolves to
+        "artist.apple_label": "free_string",
+        "artist.spotify_label": "free_string",
+        "artist.match_label": "free_string",  # = apple_label + ' | ' + spotify_label
+        "artist.spotify_source": "controlled",  # venue | api | feed | null
+    }
+
+
 def normalize(shows):
-    """Ensure every show record carries the full shared field set
-    (unknown extra fields are kept; missing ones are added as None/False)."""
+    """Ensure every show record carries the full shared field set and the
+    controlled-value contracts (unknown extra fields are kept; missing ones
+    are added as None/False). Also canonicalizes doors/show_time/ticket_status
+    and trims presenter artifacts, and reshapes artist dicts to the uniform
+    key set (10 keys always present; combined match_label recomputed)."""
     for s in shows:
         for f in SHOULD_FIELDS:
             if f == "needs_review":
                 s.setdefault("needs_review", False)
             elif f == "presenters":
                 s.setdefault("presenters", [])
+                s["presenters"] = canonical_presenters(s["presenters"])
             elif f in ("headline_artists", "support_artists"):
                 s.setdefault(f, [])
                 for a in s[f]:
                     if isinstance(a, dict):
                         a.setdefault("spotify", None)
+                        a.setdefault("spotify_source", None)
+                        a.setdefault("apple_label", None)
+                        a.setdefault("spotify_label", None)
+                        a.setdefault("found", False)
+                        a.setdefault("confidence", None)
+                        a.setdefault("matched", None)
+                        a.setdefault("apple_music", None)
+                        a.setdefault("name", None)
+                        relabel(a)  # recompute combined match_label
             elif f == "multi_artist":
                 s.setdefault("multi_artist", False)
+            elif f == "doors":
+                s.setdefault(f, None)
+                if s.get(f):
+                    s[f] = canonical_time(s[f])
+            elif f == "show_time":
+                s.setdefault(f, None)
+                if s.get(f):
+                    s[f] = canonical_time(s[f])
+            elif f == "ticket_status":
+                s.setdefault(f, None)
+                if s.get(f):
+                    s[f] = canonical_status(s[f])
             else:
                 s.setdefault(f, None)
         if s.get("date") and not s.get("date_label"):
@@ -167,6 +300,13 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
     """Sort, assemble the shared top-level document, write data/shows.json.
 
     Venue adapters call this at the end of their build. Returns the path.
+
+    Uniform top-level contract (same keys in every file, every release):
+      venue, venue_id, venue_url, source_url, city, metro, neighborhood,
+      schema, field_hints, scraped_at, count, shows, stats
+    `stats` is always exactly {event_types, apple_music, spotify} (missing
+    blocks are added zeroed), so a consumer never has to special-case a
+    file whose adapter skipped a block.
     """
     shows = normalize(list(shows))
     shows.sort(key=lambda s: (s.get("date") or "9999", s.get("doors") or ""))
@@ -178,6 +318,16 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         g = venues.geo(venue_id)
     except Exception:
         g = {"city": None, "metro": None, "neighborhood": None}
+    stats = dict(stats or {})
+    stats["event_types"] = event_type_stats(shows)  # overwrite: uniform block
+    stats.setdefault(
+        "apple_music", {"unique_artists": 0, "found": 0, "exact": 0,
+                        "close": 0, "flagged": 0, "not_found": 0})
+    stats.setdefault(
+        "spotify", {"unique_artists": 0, "linked": 0, "venue": 0, "api": 0,
+                    "feed": 0, "shows_with_link": 0})
+    # fixed key order so the document is stable for readers/diffs
+    stats = {k: stats[k] for k in ("event_types", "apple_music", "spotify")}
     doc = {
         "venue": venue,
         "venue_id": venue_id,
@@ -186,6 +336,8 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "city": g.get("city"),
         "metro": g.get("metro"),
         "neighborhood": g.get("neighborhood"),
+        "schema": 2,  # incremented on any schema change; clients gate on it
+        "field_hints": field_hints(),
         "scraped_at": _dt.date.today().isoformat(),
         "count": len(shows),
         "shows": shows,

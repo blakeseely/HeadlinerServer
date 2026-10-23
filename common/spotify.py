@@ -33,6 +33,8 @@ import re
 import time
 import urllib.request
 
+from .apple_music import relabel
+
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/125.0 Safari/537.36")
 
@@ -196,25 +198,35 @@ def norm_name(name):
 
 def stats(shows):
     """Shared stats block (goes into the venue's `stats` as "spotify").
-    Unique artists who carry a venue-published Spotify link."""
+
+    Unique artists (deduped on the case-insensitive, accentless name) and
+    how their links were sourced. `linked == venue + api + feed` exactly:
+      venue — the venue's own page published the link
+      api   — Spotify Web API lookup (common/spotify_lookup.py)
+      feed  — the venue's structured data feed carried the link (regency AEG)
+    `shows_with_link` = shows where ANY billed artist (headline or support)
+    carries a link.
+    """
     seen = {}
     for s in shows:
         for a in (s.get("headline_artists") or []) + (s.get("support_artists") or []):
             if isinstance(a, dict) and a.get("name"):
-                seen.setdefault(a["name"], a)
+                seen.setdefault(norm_name(a["name"]), a)
     def src(a):
-        # A link with no explicit source tag = venue-scraped (the 7
-        # publishing venues attach it inline in their builds; only the
-        # API-lookup path marks "api").
-        return a.get("spotify_source") if a.get("spotify_source") else (
-            "venue" if a.get("spotify") else None)
+        # A link with no explicit source tag = venue-scraped (the publishing
+        # venues attach it in their builds; the API path marks "api"; the
+        # structured-feed path marks "feed").
+        return a.get("spotify_source") or ("venue" if a.get("spotify") else None)
     return {
         "unique_artists": len(seen),
         "linked": sum(1 for a in seen.values() if a.get("spotify")),
         "venue": sum(1 for a in seen.values() if src(a) == "venue"),
         "api": sum(1 for a in seen.values() if src(a) == "api"),
+        "feed": sum(1 for a in seen.values() if src(a) == "feed"),
         "shows_with_link": sum(1 for s in shows
-                               if any(a.get("spotify") for a in s.get("headline_artists", [])
+                               if any(a.get("spotify")
+                                      for a in (s.get("headline_artists") or [])
+                                                    + (s.get("support_artists") or [])
                                       if isinstance(a, dict))),
     }
 
@@ -225,7 +237,8 @@ def merge_shows(shows, linkmap):
     linkmap: {event_page_url: {artist_name: url}}. Artist names match on the
     accent/punctuation-normalized form. Returns the number of artists linked.
     Unmatched artists stay None: an honest gap, never a wrong link.
-    """
+    Venue-published links are tagged spotify_source="venue" and their
+    `spotify_label` reset (an exact venue link needs no review label)."""
     total = 0
     for s in shows:
         if not isinstance(s, dict):
@@ -239,6 +252,8 @@ def merge_shows(shows, linkmap):
                 if norm_name(ln) == norm_name(a.get("name")):
                     a["spotify"] = url
                     a["spotify_source"] = "venue"  # the venue's own published link
+                    a["spotify_label"] = None
+                    relabel(a)
                     if url:
                         total += 1
                     break

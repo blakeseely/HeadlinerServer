@@ -407,6 +407,7 @@ def main():
                 iso = f"{year}-{mon:02d}-{day:02d}"
 
         rec = common_build.show(
+            event_type="music",  # a dedicated live-music venue: every bill is music (C4)
             headline_artists=[apple_music.artist_obj(h, lookup) for h in pt["headline"]],
             support_artists=[apple_music.artist_obj(p, lookup) for p in support],
             multi_artist=pt["multi_artist"],

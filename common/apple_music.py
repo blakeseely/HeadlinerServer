@@ -548,6 +548,42 @@ def _tail(name):
     return s
 
 
+ARTIST_KEYS = ("name", "apple_music", "spotify", "found", "confidence",
+               "matched", "apple_label", "spotify_label", "match_label",
+               "spotify_source")
+
+
+def _artist_record(name, apple_link, spotify_link, found, conf, matched,
+                   apple_label, spotify_label, spotify_source):
+    """The UNIFORM artist record shape — every key always present (null where
+    n/a), so clients never face two object shapes. `match_label` is kept as a
+    combined convenience (legacy); the structured split is `apple_label` +
+    `spotify_label` (one style each, no free-prose mixing).
+    """
+    parts = [x for x in (apple_label, spotify_label) if x]
+    return {
+        "name": name,
+        "apple_music": apple_link,
+        "spotify": spotify_link,
+        "found": found,
+        "confidence": conf,
+        "matched": matched,
+        "apple_label": apple_label,
+        "spotify_label": spotify_label,
+        "match_label": " | ".join(parts) if parts else None,
+        "spotify_source": spotify_source,
+    }
+
+
+def relabel(a):
+    """Recompute a record's combined `match_label` from its split labels.
+    Called after a venue/lookup pass mutates `apple_label` / `spotify_label`."""
+    if not isinstance(a, dict):
+        return
+    parts = [a.get("apple_label"), a.get("spotify_label")]
+    a["match_label"] = " | ".join(p for p in parts if p) or None
+
+
 def artist_obj(name, cache):
     """An artist as a structured record: name + Apple Music link + confidence.
 
@@ -557,11 +593,14 @@ def artist_obj(name, cache):
       maybe   -> found, plausible but ambiguous (0.7-0.79); needs_review
       no_exact-> not found (link None)
     Placeholder names (starting with '(') are never looked up.
+
+    `found`/`apple_music`/`confidence`/`apple_label` track the Apple Music
+    match only. The Spotify side (if a venue attaches one) fills `spotify` /
+    `spotify_label` / `spotify_source`.
     """
     if name.startswith("("):  # placeholder like (Multiple Artists)
-        return {"name": name, "apple_music": None, "spotify": None,
-                "found": False, "confidence": None, "matched": None,
-                "match_label": None}
+        return _artist_record(name, None, None, False, None, None,
+                              None, None, None)
     r = cache.get(cache_key(name)) or {}
     link = r.get("link")
     found = bool(link)
@@ -601,21 +640,16 @@ def artist_obj(name, cache):
                     label = None  # high-confidence variant spelling; link verified
                 else:
                     label = "close match: " + matched
-    return {"name": name,
-            "apple_music": link if found else None,
-            "spotify": None,
-            "found": found,
-            "confidence": conf,
-            "matched": matched if found else None,
-            "match_label": label}
+    return _artist_record(name, link if found else None, None, found,
+                          conf, matched if found else None,
+                          label, None, None)
 
 
 def plain_artist(name):
     """Artist record for venues WITHOUT Apple Music matching: plain name only
-    (same shape, match fields null)."""
-    return {"name": name, "apple_music": None, "spotify": None,
-            "found": False, "confidence": None, "matched": None,
-            "match_label": None}
+    (same uniform shape, all match fields null; confidence null = not attempted)."""
+    return _artist_record(name, None, None, False, None, None,
+                          None, None, None)
 
 
 def load_lookup_cache(path):
@@ -629,26 +663,58 @@ def load_lookup_cache(path):
     return {cache_key(k): v for k, v in raw.items()}
 
 
+def _occ_rank(a):
+    """Rank an artist occurrence as a stats representative: most-linked first.
+    (Spotify link > Apple link > confidence > attempted) so the representative
+    of a repeated name is the occurrence that actually carries the links."""
+    conf = a.get("confidence")
+    return (
+        bool(a.get("spotify")),
+        bool(a.get("found")),
+        conf if isinstance(conf, (int, float)) else -1.0,
+        a.get("confidence") is not None,
+    )
+
+
 def apple_music_stats(shows):
-    """Shared stats block over shows with Apple Music-matched artist records."""
-    all_artists = [a for s in shows for a in s["headline_artists"] + s["support_artists"]]
-    by_name = {}
-    for a in all_artists:
-        by_name.setdefault(a["name"], a)
+    """Shared stats block over shows with Apple Music-matched artist records.
+
+    Artists are deduped by the case-insensitive, accentless-normalized name
+    (L4: 'Fred Armisen' x3 = 1 act). For each unique name the stats use ONE
+    representative — the most-linked occurrence (the one a client would see
+    resolve to). Buckets partition `found` exactly (clients may sum them):
+      found == exact + close + flagged
+        exact   — confidence 1.0 (clean link; the label code never fires at 1.0)
+        close   — confidence < 1.0, no apple_label (verified variant spelling
+                  >= 0.95 or a confident near-match)
+        flagged — carries an `apple_label` (human should eyeball: 'close
+                  match: X', 'compound bill — links to A only', …)
+    `flagged` is match-quality only; it is independent of the show-level
+    `needs_review` flag (bill-level, e.g. 3+ co-headliners) — different
+    meaning, hence a different name (M5).
+    """
+    occ = {}
+    for s in shows:
+        for a in s.get("headline_artists", []) + s.get("support_artists", []):
+            if isinstance(a, dict) and a.get("name"):
+                k = norm(a["name"])
+                if k not in occ or _occ_rank(a) > _occ_rank(occ[k]):
+                    occ[k] = a
     st = {
-        "unique_artists": len(by_name),
-        "found": sum(1 for a in by_name.values() if a["found"]),
-        "exact": sum(1 for a in by_name.values() if a["found"] and a.get("confidence") == 1.0 and not a.get("match_label")),
-        "close": sum(1 for a in by_name.values()
-                     if a["found"] and isinstance(a.get("confidence"), (int, float))
-                     and 0 <= a["confidence"] < 1.0),
-        "needs_review": sum(1 for a in by_name.values() if a["found"] and a.get("match_label")),
-        "not_found": sum(1 for a in by_name.values() if not a["found"]),
+        "unique_artists": len(occ),
+        "found": 0, "exact": 0, "close": 0, "flagged": 0, "not_found": 0,
     }
-    # needs_review == the close matches that carry a "close match: X" label
-    # (the ones a human should eyeball); the unlabeled close matches are
-    # treated as clean links and folded into `close` for the display.
-    st["close"] -= st["needs_review"]
+    for a in occ.values():
+        if a.get("found"):
+            st["found"] += 1
+            if a.get("apple_label"):
+                st["flagged"] += 1
+            elif a.get("confidence") == 1.0:
+                st["exact"] += 1
+            else:
+                st["close"] += 1
+        else:
+            st["not_found"] += 1
     return st
 
 

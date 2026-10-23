@@ -198,7 +198,7 @@ def main():
               f"{('+' + sup)[:32]:32} {s.get('ticket_status') or ''}  {s.get('doors') or ''}")
     st = stats["apple_music"]
     print(f"\nApple Music: {st['found']}/{st['unique_artists']} unique artists found "
-          f"({st['exact']} exact, {st['close']} close, {st['needs_review']} flagged), "
+          f"({st['exact']} exact, {st['close']} close, {st['flagged']} flagged), "
           f"{st['not_found']} not found")
     for s in shows:
         for a in s["headline_artists"] + s["support_artists"]:

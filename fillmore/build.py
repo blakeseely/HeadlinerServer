@@ -94,7 +94,7 @@ def split_time(ii):
     if ii:
         m = re.search(r"Doors\s+([\d:apm\s]+?)(?=\s*/|\s+Support|\s*$)", ii, re.I)
         if m:
-            doors = "Doors " + re.sub(r"\s+", " ", m.group(1)).strip()
+            doors = re.sub(r"\s+", " ", m.group(1)).strip()
         m = re.search(r"Show\s+([\d:apm\s]+?)(?=\s+Support|\s*$)", ii, re.I)
         if m:
             show = re.sub(r"\s+", " ", m.group(1)).strip()
@@ -240,7 +240,7 @@ def main():
               f"{s.get('doors') or '':14} {s.get('ticket_status') or ''}")
     st = stats["apple_music"]
     print(f"\nApple Music: {st['found']}/{st['unique_artists']} unique artists found "
-          f"({st['exact']} exact, {st['close']} close, {st['needs_review']} flagged), "
+          f"({st['exact']} exact, {st['close']} close, {st['flagged']} flagged), "
           f"{st['not_found']} not found")
     for s in shows:
         for a in s["headline_artists"] + s["support_artists"]:

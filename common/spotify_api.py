@@ -29,6 +29,7 @@ import urllib.parse
 import urllib.request
 
 from . import apple_music
+from .apple_music import relabel
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -242,18 +243,17 @@ def merge_lookup(shows, cache):
             if conf < LINK_FLOOR:
                 a["spotify"] = None
                 if r.get("matched"):
-                    a["match_label"] = (
-                        (a.get("match_label") + "; " if a.get("match_label") else "")
-                        + f"Spotify: no confident match (closest: {r['matched']} @ {round(conf*100)}%)")
+                    a["spotify_label"] = (
+                        f"no confident match (closest: {r['matched']} @ {round(conf*100)}%)")
+                    relabel(a)
                 continue
             a["spotify"] = r["link"]
             a["spotify_source"] = "api"
-            if a.get("match_label"):
-                a["match_label"] = a["match_label"] + f"; Spotify: {r['matched']}"
+            m = (r.get("matched") or "").strip()
+            if m and m.lower() != a["name"].lower():
+                a["spotify_label"] = f"close match: {m}" if conf < 0.95 else None
             else:
-                m = (r.get("matched") or "").strip()
-                if m and m.lower() != a["name"].lower():
-                    a["match_label"] = f"Spotify: close match ({m})" \
-                        if conf < 0.95 else None
+                a["spotify_label"] = None
+            relabel(a)
             applied += 1
     return applied

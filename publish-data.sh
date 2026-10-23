@@ -69,18 +69,36 @@ for venue in sorted(os.listdir(root)):
     raw = open(src).read()
     open(os.path.join(dst_dir, "shows.json"), "w").write(raw)
     shows = updated = city = metro = None
+    domains = {"event_type": [], "ticket_status": []}
+    sources = []
     try:
         doc = json.loads(raw)
         shows = doc.get("shows", [])
-        updated = (shows[0].get("date") if shows else None) or doc.get("generated_at") or doc.get("scraped_at")
+        # `updated_at` = when this venue's data was actually refreshed (the
+        # scrape date); `oldest_show_date` = the oldest show on the schedule
+        # (the pre-rename meaning of `updated_at`, kept for old clients).
+        updated = doc.get("scraped_at")
         city = doc.get("city")
         metro = doc.get("metro")
+        for s in shows:
+            if s.get("event_type") and s["event_type"] not in domains["event_type"]:
+                domains["event_type"].append(s["event_type"])
+            if s.get("ticket_status") and s["ticket_status"] not in domains["ticket_status"]:
+                domains["ticket_status"].append(s["ticket_status"])
+            for ar in (s.get("headline_artists") or []) + (s.get("support_artists") or []):
+                if isinstance(ar, dict) and ar.get("spotify_source") and \
+                   ar["spotify_source"] not in sources:
+                    sources.append(ar["spotify_source"])
+        domains["spotify_source"] = sources
     except Exception:
         pass
     manifest["venues"].append({
         "venue_id": venue, "file": f"{venue}/shows.json",
         "city": city, "metro": metro,
-        "updated_at": updated, "show_count": len(shows or []),
+        "updated_at": updated,
+        "oldest_show_date": shows[0].get("date") if shows else None,
+        "value_domains": domains,
+        "show_count": len(shows or []),
         "sha256_16": hashlib.sha256(raw.encode()).hexdigest()[:16],
     })
 with open(os.path.join(data, "manifest.json"), "w") as f:
