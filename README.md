@@ -79,9 +79,10 @@ show_title, presenters, set_format, date, date_label, doors, show_time,
 ticket_link, ticket_status, event_page, age_rating, note, description`.
 
 Artist records are always the same object:
-`{name, apple_music, spotify, found, confidence, matched, match_label}` — venues
+`{name, apple_music, spotify, confidence, matched, match_label}` — venues
 without Apple Music matching leave the match fields `null`; `spotify` is `null`
-unless the venue's own page published that artist's link.
+unless the venue's own page published that artist's link. An artist has an
+`apple_music` link iff a confident match was found (the found/not-found signal).
 
 `stats` carries any number of named blocks (`event_types`, `apple_music`, …);
 the viewer and the picker render whichever are present.

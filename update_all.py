@@ -68,7 +68,7 @@ def artist_links(s):
         for a in s.get(f, []):
             if isinstance(a, dict):
                 out.append({k: a.get(k) for k in
-                            ("name", "apple_music", "found", "confidence")})
+                            ("name", "apple_music", "confidence")})
     return out
 
 

@@ -215,7 +215,7 @@ def main():
           f"{st['not_found']} not found")
     for s in shows:
         for a in s["headline_artists"] + s["support_artists"]:
-            if not a["found"] and a.get("confidence") is not None:
+            if not a.get("apple_music") and a.get("confidence") is not None:
                 print(f"  not-found: {a['name']} (closest {a['matched']} @ {a['confidence']})")
 
 

@@ -138,7 +138,7 @@ function achip(a, supp, detail){
   const isObj=(a&&typeof a==="object");
   const link=isObj? a.apple_music : null;
   const sp=isObj? a.spotify : null;
-  const found=isObj? a.found : null;
+  const found=isObj? !!a.apple_music : null;
   const conf=isObj? a.confidence : null;
   const label=isObj? a.match_label : null;
   const multi=name.startsWith("(");
@@ -203,7 +203,7 @@ function renderList(){
     const nm=anames(s.headline_artists);
     const sup=anames(s.support_artists);
     const g=s.event_type? `<span class="catglyph">${CATGLYPH[s.event_type]||""}</span> `:"";
-    const nf=(HAS_AM && (s.headline_artists||[]).concat(s.support_artists||[]).some(a=>aname(a)&&!a.found))?'<span class="nf-tag">♪ ?</span>':"";
+    const nf=(HAS_AM && (s.headline_artists||[]).concat(s.support_artists||[]).some(a=>aname(a)&&!(a&&a.apple_music)))?'<span class="nf-tag">♪ ?</span>':"";
     const rm=s.room?` <span class="cat" style="opacity:.8">▸ ${esc(s.room)}</span>`:"";
     html+=`<div class="item ${cur===s? 'active':''}" data-id="${DATA.shows.indexOf(s)}">
       <div class="name">${g}${esc(nm)} ${rm} <span class="flag ${stt.cls}">${stt.cls==='ok'?'✓':(stt.cls==='warn'?'⚠':'✗')}</span></div>

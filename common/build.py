@@ -83,7 +83,7 @@ def canonical_presenters(p):
 SHOULD_FIELDS = [
     "event_type",       # str|null: music | film | comedy | other
     "needs_review",     # bool: venue-flagged for human review
-    "headline_artists", # [{name, apple_music, spotify, found, confidence, matched, match_label}]
+    "headline_artists", # [{name, apple_music, spotify, confidence, matched, match_label}]
     "support_artists",  # same shape
     "multi_artist",     # bool
     "show_title",       # str|null: tour/show title when billed separately
@@ -150,7 +150,6 @@ def _promote_status_headliner(rec):
     a["name"] = nm
     for k in ("apple_music", "spotify"):
         a[k] = None
-    a["found"] = False
     a["confidence"] = None
     a["matched"] = None
     a["match_label"] = None
@@ -238,7 +237,6 @@ def field_hints():
         "description": "free_string",
         "artist.apple_music": "url",
         "artist.spotify": "url",
-        "artist.found": "bool",           # Apple Music match found
         "artist.confidence": "float",     # null=not attempted, 0.0=no match, else 0-1
         "artist.matched": "free_string",  # catalog artist name the link resolves to
         "artist.apple_label": "free_string",
@@ -269,7 +267,6 @@ def normalize(shows):
                         a.setdefault("spotify_source", None)
                         a.setdefault("apple_label", None)
                         a.setdefault("spotify_label", None)
-                        a.setdefault("found", False)
                         a.setdefault("confidence", None)
                         a.setdefault("matched", None)
                         a.setdefault("apple_music", None)
@@ -336,7 +333,7 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "city": g.get("city"),
         "metro": g.get("metro"),
         "neighborhood": g.get("neighborhood"),
-        "schema": 2,  # incremented on any schema change; clients gate on it
+        "schema": 3,  # incremented on any schema change; clients gate on it
         "field_hints": field_hints(),
         "scraped_at": _dt.date.today().isoformat(),
         "count": len(shows),

@@ -548,12 +548,12 @@ def _tail(name):
     return s
 
 
-ARTIST_KEYS = ("name", "apple_music", "spotify", "found", "confidence",
+ARTIST_KEYS = ("name", "apple_music", "spotify", "confidence",
                "matched", "apple_label", "spotify_label", "match_label",
                "spotify_source")
 
 
-def _artist_record(name, apple_link, spotify_link, found, conf, matched,
+def _artist_record(name, apple_link, spotify_link, conf, matched,
                    apple_label, spotify_label, spotify_source):
     """The UNIFORM artist record shape — every key always present (null where
     n/a), so clients never face two object shapes. `match_label` is kept as a
@@ -565,7 +565,6 @@ def _artist_record(name, apple_link, spotify_link, found, conf, matched,
         "name": name,
         "apple_music": apple_link,
         "spotify": spotify_link,
-        "found": found,
         "confidence": conf,
         "matched": matched,
         "apple_label": apple_label,
@@ -594,12 +593,13 @@ def artist_obj(name, cache):
       no_exact-> not found (link None)
     Placeholder names (starting with '(') are never looked up.
 
-    `found`/`apple_music`/`confidence`/`apple_label` track the Apple Music
-    match only. The Spotify side (if a venue attaches one) fills `spotify` /
-    `spotify_label` / `spotify_source`.
+    `apple_music`/`confidence`/`apple_label`/`matched` track the Apple Music
+    match only (a link is present iff a confident match was found). The
+    Spotify side (if a venue attaches one) fills `spotify` / `spotify_label`
+    / `spotify_source`.
     """
     if name.startswith("("):  # placeholder like (Multiple Artists)
-        return _artist_record(name, None, None, False, None, None,
+        return _artist_record(name, None, None, None, None,
                               None, None, None)
     r = cache.get(cache_key(name)) or {}
     link = r.get("link")
@@ -608,6 +608,8 @@ def artist_obj(name, cache):
     matched = r.get("matched")
     label = None
     if found and conf is not None and conf < LINK_FLOOR:
+        # Below the link floor: honest not-found (no link); `matched` is
+        # gated off below, the near-miss is retained in `apple_label`.
         found = False
         link = None
         label = f"no confident match (closest: {matched} @ {round(conf*100)}%)"
@@ -640,7 +642,7 @@ def artist_obj(name, cache):
                     label = None  # high-confidence variant spelling; link verified
                 else:
                     label = "close match: " + matched
-    return _artist_record(name, link if found else None, None, found,
+    return _artist_record(name, link if found else None, None,
                           conf, matched if found else None,
                           label, None, None)
 
@@ -648,7 +650,7 @@ def artist_obj(name, cache):
 def plain_artist(name):
     """Artist record for venues WITHOUT Apple Music matching: plain name only
     (same uniform shape, all match fields null; confidence null = not attempted)."""
-    return _artist_record(name, None, None, False, None, None,
+    return _artist_record(name, None, None, None, None,
                           None, None, None)
 
 
@@ -670,7 +672,7 @@ def _occ_rank(a):
     conf = a.get("confidence")
     return (
         bool(a.get("spotify")),
-        bool(a.get("found")),
+        bool(a.get("apple_music")),
         conf if isinstance(conf, (int, float)) else -1.0,
         a.get("confidence") is not None,
     )
@@ -705,7 +707,7 @@ def apple_music_stats(shows):
         "found": 0, "exact": 0, "close": 0, "flagged": 0, "not_found": 0,
     }
     for a in occ.values():
-        if a.get("found"):
+        if a.get("apple_music"):
             st["found"] += 1
             if a.get("apple_label"):
                 st["flagged"] += 1
