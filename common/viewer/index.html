@@ -277,26 +277,29 @@ document.getElementById("vname").textContent=DATA.venue;
 document.getElementById("raw").href="shows.json";
 if(HAS_AM){
   const a=AM;
-  document.getElementById("amstat").innerHTML=`♪ Apple Music: <b>${a.exact}</b> exact · <b>${a.close}</b> close · ${a.needs_review} review · <b>${a.not_found}</b> not found (of ${a.unique_artists})`;
+  document.getElementById("amstat").innerHTML=`♪ Apple Music: <b>${a.exact}</b> exact · <b>${a.close}</b> close · ${a.flagged||0} flagged · <b>${a.not_found}</b> not found (of ${a.unique_artists})`;
 } else {
   document.getElementById("amstat").style.display="none";
 }
 // Spotify stat line: worded by source — venue-published links, API-searched
-// links, or a mix.
+// links, feed-carried links, or a mix.
 const SPB=STATS.spotify||{};
 if(SPB.linked){
   let note="";
-  if(SPB.venue&&SPB.api) note=` (${SPB.venue} venue · ${SPB.api} Spotify search)`;
-  else if(SPB.api) note=" (Spotify search)";
-  else if(SPB.venue) note=" (venue site)";
+  const parts=[];
+  if(SPB.venue) parts.push(`${SPB.venue} venue`);
+  if(SPB.api) parts.push(`${SPB.api} Spotify search`);
+  if(SPB.feed) parts.push(`${SPB.feed} feed`);
+  if(parts.length) note=` (${parts.join(" · ")})`;
   document.getElementById("spstat").innerHTML=`🎧 Spotify: <b>${SPB.linked}</b> linked${note}`;
 } else {
   document.getElementById("spstat").style.display="none";
 }
-// type filter — only for venues that carry event_type counts
+// type filter — only for venues whose schedule actually mixes types
 const catf=document.getElementById("catf");
-if(TYPES && Object.keys(TYPES).length){
-  catf.innerHTML='<option value="">All types</option>'+Object.keys(TYPES).map(c=>`<option value="${c}">${c}</option>`).join("");
+const nonzeroTypes=Object.keys(TYPES||{}).filter(c=>TYPES[c]>0);
+if(TYPES && nonzeroTypes.length>1){
+  catf.innerHTML='<option value="">All types</option>'+nonzeroTypes.map(c=>`<option value="${c}">${c}</option>`).join("");
   catf.onchange=e=>{cat=e.target.value;renderList();};
 } else catf.style.display="none";
 renderList();
