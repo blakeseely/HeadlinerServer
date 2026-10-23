@@ -33,7 +33,6 @@ import re
 import time
 import urllib.request
 
-from .apple_music import relabel
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/125.0 Safari/537.36")
@@ -253,7 +252,6 @@ def merge_shows(shows, linkmap):
                     a["spotify"] = url
                     a["spotify_source"] = "venue"  # the venue's own published link
                     a["spotify_label"] = None
-                    relabel(a)
                     if url:
                         total += 1
                     break

@@ -33,6 +33,13 @@ if [ ! -d "$DATA_DIR/.git" ]; then
 fi
 cd "$DATA_DIR"
 git remote set-url origin "$ORIGIN"
+# Guard: never clobber uncommitted work in the data repo (a reset here has
+# silently eaten hand-edited READMEs before).
+if git status --porcelain | grep -q .; then
+  echo "ERROR: data-repo has uncommitted changes — commit or discard them first:"
+  git status --short | sed 's/^/  /'
+  exit 1
+fi
 git fetch -q origin
 # data branch: prefer the remote default; fall back to main/master/HEAD
 BRANCH="$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p' | head -1)"

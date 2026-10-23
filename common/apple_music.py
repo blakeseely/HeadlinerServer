@@ -549,18 +549,17 @@ def _tail(name):
 
 
 ARTIST_KEYS = ("name", "apple_music", "spotify", "confidence",
-               "matched", "apple_label", "spotify_label", "match_label",
+               "matched", "apple_label", "spotify_label",
                "spotify_source")
 
 
 def _artist_record(name, apple_link, spotify_link, conf, matched,
                    apple_label, spotify_label, spotify_source):
     """The UNIFORM artist record shape — every key always present (null where
-    n/a), so clients never face two object shapes. `match_label` is kept as a
-    combined convenience (legacy); the structured split is `apple_label` +
-    `spotify_label` (one style each, no free-prose mixing).
+    n/a), so clients never face two object shapes. Review labels are the
+    structured `apple_label` + `spotify_label` (one style each, no free-prose
+    mixing); a client wanting one display string joins them client-side.
     """
-    parts = [x for x in (apple_label, spotify_label) if x]
     return {
         "name": name,
         "apple_music": apple_link,
@@ -569,18 +568,8 @@ def _artist_record(name, apple_link, spotify_link, conf, matched,
         "matched": matched,
         "apple_label": apple_label,
         "spotify_label": spotify_label,
-        "match_label": " | ".join(parts) if parts else None,
         "spotify_source": spotify_source,
     }
-
-
-def relabel(a):
-    """Recompute a record's combined `match_label` from its split labels.
-    Called after a venue/lookup pass mutates `apple_label` / `spotify_label`."""
-    if not isinstance(a, dict):
-        return
-    parts = [a.get("apple_label"), a.get("spotify_label")]
-    a["match_label"] = " | ".join(p for p in parts if p) or None
 
 
 def artist_obj(name, cache):
@@ -718,17 +707,6 @@ def apple_music_stats(shows):
         else:
             st["not_found"] += 1
     return st
-
-
-WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-
-def date_label(iso):
-    """'Fri 2026-10-16' style label for the reviewer; None without a date."""
-    if not iso:
-        return None
-    import datetime
-    return f"{WEEKDAYS[datetime.date.fromisoformat(iso).weekday()]} {iso}"
 
 
 def shows_json(venue, venue_id, venue_url, source_url, shows, stats):

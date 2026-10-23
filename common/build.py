@@ -23,7 +23,6 @@ import os
 import re
 from collections import Counter
 from . import apple_music
-from .apple_music import date_label, relabel
 from . import venues
 from . import spotify_api
 
@@ -83,14 +82,13 @@ def canonical_presenters(p):
 SHOULD_FIELDS = [
     "event_type",       # str|null: music | film | comedy | other
     "needs_review",     # bool: venue-flagged for human review
-    "headline_artists", # [{name, apple_music, spotify, confidence, matched, match_label}]
+    "headline_artists", # [{name, apple_music, spotify, confidence, matched, apple_label, spotify_label, spotify_source}]
     "support_artists",  # same shape
     "multi_artist",     # bool
     "show_title",       # str|null: tour/show title when billed separately
     "presenters",       # [str]: "X PRESENTS"
     "set_format",       # str|null: "Live + DJ" style
     "date",             # YYYY-MM-DD|null
-    "date_label",       # "Fri 2026-10-16"|null
     "doors",            # str|null
     "show_time",        # str|null
     "ticket_link",      # str|null
@@ -152,7 +150,6 @@ def _promote_status_headliner(rec):
         a[k] = None
     a["confidence"] = None
     a["matched"] = None
-    a["match_label"] = None
     rec["show_title"] = st2
     if note and not rec.get("note"):
         rec["note"] = note
@@ -161,7 +158,7 @@ def _promote_status_headliner(rec):
 def show(event_type=None, needs_review=False,
          headline_artists=None, support_artists=None, multi_artist=False,
          show_title=None, presenters=None, set_format=None,
-         date=None, date_label=None, doors=None, show_time=None,
+         date=None, doors=None, show_time=None,
          ticket_link=None, ticket_status=None, event_page=None,
          room=None, age_rating=None, note=None, description=None):
     """Build one show record in the shared shape (missing values -> None)."""
@@ -176,7 +173,6 @@ def show(event_type=None, needs_review=False,
         "presenters": list(presenters or []),
         "set_format": set_format,
         "date": date,
-        "date_label": date_label,
         "doors": doors,
         "show_time": show_time,
         "ticket_link": ticket_link,
@@ -226,7 +222,6 @@ def field_hints():
         "show_title": "free_string",
         "set_format": "free_string",
         "date": "date",                   # YYYY-MM-DD (or null)
-        "date_label": "date_label",       # 'Fri 2026-10-16' (display convenience)
         "doors": "free_string",           # canonicalized to 'H:MM pm' when parseable
         "show_time": "free_string",       # canonicalized to 'H:MM pm' when parseable
         "ticket_link": "free_string",     # URL, or the venue's button text
@@ -241,7 +236,6 @@ def field_hints():
         "artist.matched": "free_string",  # catalog artist name the link resolves to
         "artist.apple_label": "free_string",
         "artist.spotify_label": "free_string",
-        "artist.match_label": "free_string",  # = apple_label + ' | ' + spotify_label
         "artist.spotify_source": "controlled",  # venue | api | feed | null
     }
 
@@ -251,7 +245,7 @@ def normalize(shows):
     controlled-value contracts (unknown extra fields are kept; missing ones
     are added as None/False). Also canonicalizes doors/show_time/ticket_status
     and trims presenter artifacts, and reshapes artist dicts to the uniform
-    key set (10 keys always present; combined match_label recomputed)."""
+    key set (8 keys always present)."""
     for s in shows:
         for f in SHOULD_FIELDS:
             if f == "needs_review":
@@ -271,7 +265,6 @@ def normalize(shows):
                         a.setdefault("matched", None)
                         a.setdefault("apple_music", None)
                         a.setdefault("name", None)
-                        relabel(a)  # recompute combined match_label
             elif f == "multi_artist":
                 s.setdefault("multi_artist", False)
             elif f == "doors":
@@ -288,8 +281,6 @@ def normalize(shows):
                     s[f] = canonical_status(s[f])
             else:
                 s.setdefault(f, None)
-        if s.get("date") and not s.get("date_label"):
-            s["date_label"] = date_label(s["date"])
     return shows
 
 
@@ -333,7 +324,7 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "city": g.get("city"),
         "metro": g.get("metro"),
         "neighborhood": g.get("neighborhood"),
-        "schema": 3,  # incremented on any schema change; clients gate on it
+        "schema": 4,  # incremented on any schema change; clients gate on it
         "field_hints": field_hints(),
         "scraped_at": _dt.date.today().isoformat(),
         "count": len(shows),

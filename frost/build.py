@@ -82,13 +82,6 @@ def iso_date(date_str):
     return f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else None
 
 
-def _pretty_date(iso):
-    if not iso:
-        return None
-    d = apple_music.date_label(iso) if iso else None
-    return d
-
-
 def split_support(support_raw, lookup):
     """The detail page returns support as a flat list of acts (already
     <br>-split by the fetch). Each is one act as billed; a part may still
