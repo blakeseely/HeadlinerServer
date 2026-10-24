@@ -61,28 +61,31 @@ Each venue directory holds only what's venue-specific:
 
 ## The shared JSON format
 
-Top level (every venue, same keys):
+Top level (every venue, same 13 keys):
 
 ```json
 {
   "venue": "The Castro Theatre", "venue_id": "castro",
-  "venue_url": "...", "source_url": "...", "scraped_at": "2026-10-16",
+  "venue_url": "...", "source_url": "...", "city": "San Francisco",
+  "metro": "San Francisco", "neighborhood": null,
+  "schema": 4, "field_hints": { ... }, "scraped_at": "2026-10-16",
   "count": 78,
   "shows": [ ... ],
-  "stats": { "event_types": {"music": 58, ...} , "apple_music": {...} }
+  "stats": { "event_types": {"music": 58, ...}, "apple_music": {...}, "spotify": {...} }
 }
 ```
 
-Each show (superset — fields a venue doesn't have are `null`):
+Each show (18 keys — superset, null where a venue doesn't have the field):
 `event_type, needs_review, headline_artists, support_artists, multi_artist,
-show_title, presenters, set_format, date, date_label, doors, show_time,
-ticket_link, ticket_status, event_page, age_rating, note, description`.
+show_title, presenters, set_format, date, doors, show_time,
+ticket_link, ticket_status, event_page, room, age_rating, note, description`.
 
-Artist records are always the same object:
-`{name, apple_music, spotify, confidence, matched, match_label}` — venues
-without Apple Music matching leave the match fields `null`; `spotify` is `null`
-unless the venue's own page published that artist's link. An artist has an
-`apple_music` link iff a confident match was found (the found/not-found signal).
+Artist records are always the same object (8 keys):
+`{name, apple_music, spotify, confidence, matched, apple_label, spotify_label,
+spotify_source}` — venues without Apple Music matching leave the match fields
+`null`; `spotify` is `null` unless the venue's own page published that artist's
+link. An artist has an `apple_music` link iff a confident match was found (the
+found/not-found signal).
 
 `stats` carries any number of named blocks (`event_types`, `apple_music`, …);
 the viewer and the picker render whichever are present.
