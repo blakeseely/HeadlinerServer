@@ -219,6 +219,12 @@ def main():
                             artist["spotify_source"] = "feed"
         shows.append(rec)
 
+    # Most Regency artists carry no feed link (the AEG feed only tags a few);
+    # fill the rest from the Spotify API lookup — a feed/venue link always
+    # wins, below-floor matches stay an honest null with a near-miss label.
+    common_build.apply_spotify_lookup(
+        shows, os.path.join(ROOT, "cache", "spotify_lookup.json"))
+
     stats = {
         "event_types": dict(Counter(s["event_type"] for s in shows)),
         "apple_music": apple_music.apple_music_stats(shows),

@@ -83,7 +83,7 @@ VENUES = {
     "regency": {
         "key": "regency",
         "name": "The Regency Ballroom",
-        "has_spotify_lookup": False,
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Castro",

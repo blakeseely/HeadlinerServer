@@ -231,7 +231,11 @@ def merge_lookup(shows, cache):
             if not isinstance(a, dict) or not a.get("name"):
                 continue
             if a.get("spotify"):
-                a["spotify_source"] = "venue"
+                # venue-published links always win; tag "venue" only when the
+                # source is unmarked (a "feed"-tagged link, e.g. regency's AEG
+                # feed, must keep its own tag on rebuild)
+                if not a.get("spotify_source"):
+                    a["spotify_source"] = "venue"
                 continue
             r = cache.get(apple_music.cache_key(a["name"]))
             if not r or not r.get("link"):
