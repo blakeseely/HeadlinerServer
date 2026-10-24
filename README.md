@@ -68,7 +68,7 @@ Top level (every venue, same 13 keys):
   "venue": "The Castro Theatre", "venue_id": "castro",
   "venue_url": "...", "source_url": "...", "city": "San Francisco",
   "metro": "San Francisco", "neighborhood": null,
-  "schema": 4, "field_hints": { ... }, "scraped_at": "2026-10-16",
+  "schema": 5, "field_hints": { ... }, "scraped_at": "2026-10-16",
   "count": 78,
   "shows": [ ... ],
   "stats": { "event_types": {"music": 58, ...}, "apple_music": {...}, "spotify": {...} }
@@ -79,6 +79,11 @@ Each show (18 keys — superset, null where a venue doesn't have the field):
 `event_type, needs_review, headline_artists, support_artists, multi_artist,
 show_title, presenters, set_format, date, doors, show_time,
 ticket_link, ticket_status, event_page, room, age_rating, note, description`.
+`event_page` is null for calendar placeholder rows (a promoter listing with
+no detail page — bellyup "Private Event"). **Upcoming-only retention
+(schema 5):** `run_build` drops shows whose date is strictly before the
+build date and recomputes all stats from the surviving shows, so stats
+always describe exactly what the file contains.
 
 Artist records are always the same object (8 keys):
 `{name, apple_music, spotify, confidence, matched, apple_label, spotify_label,

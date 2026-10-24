@@ -24,6 +24,7 @@ import re
 from collections import Counter
 from . import apple_music
 from . import venues
+from . import spotify
 from . import spotify_api
 
 
@@ -219,17 +220,26 @@ def field_hints():
     return {
         "event_type": "controlled",       # music | comedy | film | other
         "needs_review": "bool",
+        "headline_artists": "artist[]",   # billed headliners (uniform 8-key artist)
+        "support_artists": "artist[]",    # support acts (uniform 8-key artist)
+        "multi_artist": "bool",           # true when 2+ headliners are billed
         "show_title": "free_string",
+        "presenters": "string[]",         # "X Presents"
         "set_format": "free_string",
         "date": "date",                   # YYYY-MM-DD (or null)
         "doors": "free_string",           # canonicalized to 'H:MM pm' when parseable
         "show_time": "free_string",       # canonicalized to 'H:MM pm' when parseable
         "ticket_link": "free_string",     # URL, or the venue's button text
         "ticket_status": "free_string",   # case-folded, raw vocabulary otherwise
+        "event_page": "url_or_null",      # the venue's own page for this event;
+                                          # NULL for calendar placeholder rows
+                                          # (e.g. bellyup "Private Event" — no
+                                          # detail page in the promoter's feed)
         "room": "free_string",
         "age_rating": "free_string",
         "note": "free_string",
         "description": "free_string",
+        "artist.name": "free_string",     # as billed
         "artist.apple_music": "url",
         "artist.spotify": "url",
         "artist.confidence": "float",     # null=not attempted, 0.0=no match, else 0-1
@@ -279,43 +289,68 @@ def normalize(shows):
                 s.setdefault(f, None)
                 if s.get(f):
                     s[f] = canonical_status(s[f])
+            elif f in ("note", "description"):
+                s.setdefault(f, None)
+                # Capture-artifact cleanup only (the description caps leave
+                # trailing spaces; HTML parsing leaks nbsp). Interior spacing
+                # and wording are the venue's own text — untouched.
+                if isinstance(s.get(f), str):
+                    s[f] = re.sub(r"[ \t]+\n", " ", s[f]).replace(
+                        "\u00a0", " ").strip()
             else:
                 s.setdefault(f, None)
     return shows
 
 
 def run_build(venue, venue_id, venue_url, source_url, shows, stats):
-    """Sort, assemble the shared top-level document, write data/shows.json.
+    """Sort, drop past shows, recompute stats, write data/shows.json.
 
     Venue adapters call this at the end of their build. Returns the path.
 
     Uniform top-level contract (same keys in every file, every release):
       venue, venue_id, venue_url, source_url, city, metro, neighborhood,
       schema, field_hints, scraped_at, count, shows, stats
-    `stats` is always exactly {event_types, apple_music, spotify} (missing
-    blocks are added zeroed), so a consumer never has to special-case a
-    file whose adapter skipped a block.
+    `stats` is always exactly {event_types, apple_music, spotify} and is
+    RECOMPUTED from the file's actual (post-filter) shows — the adapter's
+    passed-in values are ignored — so stats always match what clients read.
+    Past shows (date < build date) are dropped: the feed is upcoming-only.
     """
     shows = normalize(list(shows))
     shows.sort(key=lambda s: (s.get("date") or "9999", s.get("doors") or ""))
     import datetime as _dt
     import json
+    # Upcoming-only feed (schema 5): drop shows whose date is strictly before
+    # the build date. The feed is a "what's coming up" listing, not a
+    # historical archive — a stale "on sale" status on a past show could
+    # mislead a client into offering tickets for an event that already
+    # happened. Shows with no date are KEPT (honest gap, not provably past).
+    today = _dt.date.today().isoformat()
+    shows = [s for s in shows if not (s.get("date") and s["date"] < today)]
     # Geo tags for the iOS app: specific city + metro market (+ neighborhood
     # when useful). Comes from the registry; safe against a missing key.
     try:
         g = venues.geo(venue_id)
     except Exception:
         g = {"city": None, "metro": None, "neighborhood": None}
-    stats = dict(stats or {})
-    stats["event_types"] = event_type_stats(shows)  # overwrite: uniform block
-    stats.setdefault(
-        "apple_music", {"unique_artists": 0, "found": 0, "exact": 0,
-                        "close": 0, "flagged": 0, "not_found": 0})
-    stats.setdefault(
-        "spotify", {"unique_artists": 0, "linked": 0, "venue": 0, "api": 0,
-                    "feed": 0, "shows_with_link": 0})
-    # fixed key order so the document is stable for readers/diffs
-    stats = {k: stats[k] for k in ("event_types", "apple_music", "spotify")}
+    # Recompute ALL stats from the (post-filter) shows, not from the
+    # adapter's pre-filter lists. The adapters compute stats before the
+    # past-drop runs, so without this their apple_music/spotify blocks would
+    # still count artists that only appear in dropped shows — a block that no
+    # longer matches the shows[] the client actually reads. Recomputing here
+    # makes stats a guaranteed function of the file's shows[] (the invariant
+    # clients rely on: stats.apple_music.found == exact + close + flagged over
+    # the artists present).
+    new_stats = {
+        "event_types": event_type_stats(shows),
+        "apple_music": apple_music.apple_music_stats(shows),
+        "spotify": spotify.stats(shows),
+    }
+    if isinstance(stats, dict):
+        stats.clear()
+        stats.update(new_stats)  # keep the caller's reference in sync (its
+                                 # post-build summary prints read it)
+    else:
+        stats = new_stats
     doc = {
         "venue": venue,
         "venue_id": venue_id,
@@ -324,7 +359,10 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "city": g.get("city"),
         "metro": g.get("metro"),
         "neighborhood": g.get("neighborhood"),
-        "schema": 4,  # incremented on any schema change; clients gate on it
+        "schema": 5,  # incremented on any schema change; clients gate on it
+                      # 5 (2026-10-24) — upcoming-only retention (past shows
+                      # dropped) + field_hints covers all 26 fields; show
+                      # records are still 18 keys, artists still 8.
         "field_hints": field_hints(),
         "scraped_at": _dt.date.today().isoformat(),
         "count": len(shows),
