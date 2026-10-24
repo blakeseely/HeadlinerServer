@@ -299,6 +299,29 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    # ------------------------------------------------------------------
+    # Los Angeles metro — Pappy & Harriet's (Pioneertown) is ~90 mi east of
+    # LA; the owner groups it with the LA market on purpose.
+    # ------------------------------------------------------------------
+    "pappy": {
+        "key": "pappy",
+        "name": "Pappy & Harriet's",
+        "has_spotify_lookup": True,
+        "city": "Pioneertown, CA",
+        "metro": "Los Angeles",
+        "neighborhood": None,
+        "dir": os.path.join(ROOT, "pappy"),
+        # Pioneertown desert saloon (53688 Pioneertown Rd): country/rock/
+        # roots, EST. 1982. The HTML routes are bot-walled (403 curl AND a
+        # real browser), so fetch.py reads the /calendar page through the
+        # WordPress REST API (12 month tables + the nearest ~38 list cards,
+        # merged). Spotify is honest-null (site publishes no per-artist links;
+        # the Seetickets event pages are bot-walled) — the API lookup fills
+        # what it can.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "events.json",
+    },
 }
 
 
