@@ -192,6 +192,25 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "rickshawstop": {
+        "key": "rickshawstop",
+        "name": "Rickshaw Stop",
+        "has_spotify_lookup": True,
+        "city": "San Francisco, CA",
+        "metro": SF_Metro,
+        "neighborhood": "Civic Center",
+        "dir": os.path.join(ROOT, "rickshawstop"),
+        # Eclectic Mission/Civic-Center room (155 Fell St): indie,
+        # electronic, dance + the occasional comedy set. The HTML routes are
+        # Cloudflare-walled, so fetch.py reads the calendar through the
+        # WordPress REST API (12 month tables + 10 nearest list cards,
+        # merged). Spotify is honest-null (site publishes no per-artist
+        # links; the Seetickets/Eventim ticket pages are bot-walled) — the
+        # API lookup fills what it can.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "events.json",
+    },
     # ------------------------------------------------------------------
     # San Diego metro — the Belly Up Presents group promotes all six rooms
     # from ONE shared calendar (bellyup.com/calendar); each dir is a thin

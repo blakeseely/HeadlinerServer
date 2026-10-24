@@ -48,6 +48,8 @@ VENUES = {
                     "venue_dir": os.path.join(ROOT, "frost")},
     "chapel":      {"name": "The Chapel", "city": "San Francisco, CA",
                     "venue_dir": os.path.join(ROOT, "chapel")},
+    "rickshawstop": {"name": "Rickshaw Stop", "city": "San Francisco, CA",
+                     "venue_dir": os.path.join(ROOT, "rickshawstop")},
     "bellyup":     {"name": "Belly Up", "city": "Solana Beach, CA",
                     "venue_dir": os.path.join(ROOT, "bellyup")},
     "thesound":    {"name": "The Sound", "city": "Del Mar, CA",
