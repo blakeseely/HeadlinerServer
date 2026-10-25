@@ -6,6 +6,10 @@ for every venue; each theater is a thin adapter on top of it.
 
 ## Venues
 
+The registry in `common/venues.py` is the source of truth — this table is a
+summary and can lag behind it (a new venue lands as one registry entry; see
+"Adding a new theater" below).
+
 | Dir | Venue | Source | Route | Notes |
 |-----|-------|--------|-------|-------|
 | [`independent/`](independent/) | The Independent, SF | theindependentsf.com | `:8050/independent/` | music; Apple Music matching (confidence tiers) |
@@ -20,6 +24,15 @@ for every venue; each theater is a thin adapter on top of it.
 | [`greek/`](greek/) | Greek Theatre, Berkeley | thegreekberkeley.com (UC Berkeley, Another Planet / TicketWeb WordPress) | `:8050/greek/` | music (APE's exclusive-promoter concerts — the *full* season incl. theater/film is on thegreek.com, which is Cloudflare-walled); the /event-listing/ page is fully server-rendered with tour / headliner / `<br>`-separated support as separate fields; detail pages add age + per-artist bio; single room; Apple Music matching on all |
 | [`brickandmortar/`](brickandmortar/) | Brick & Mortar Music Hall, SF | brickandmortarmusic.com (TicketWeb WordPress) | `:8050/brickandmortar/` | music; the /shows listing is fully server-rendered and NOT paginated (one GET = the whole schedule; /page/N/ returns the same shows) — a 250-cap venue, so bills are `+` multi-headline / `Name — Tour` / comma- or `w/`-support; the button class (`tw_ticketssold`/`tw_soldout`) encodes sale state, detail pages add the full date (the listing's date is a year-less MM.DD) + the per-artist bio; Apple Music matching on all |
 | [`frost/`](frost/) | Frost Amphitheater, Stanford | live.stanford.edu (Stanford Live, public JSON API) | `:8050/frost/` | music (the summer concert season, ticketed via AXS); one API GET = the whole season, filtered by the `Frost` flag; server-rendered detail pages add the tour, per-date "Featured Artists" support, age, doors, bio; the off-season is legitimately EMPTY (a summer venue — ~April–October) |
+| [`chapel/`](chapel/) | The Chapel, SF | thechapelsf.com | `:8050/chapel/` | music (a single-room live-music calendar); the /calendar page is a plain-GET WordPress page of 12 server-rendered month tables — the date is reconstructed from the table's month header + the card's day number (2026-10-25: bound to the card's own cell); the Seetickets ticket link is kept but bot-walled, never scraped; Apple Music matching on all |
+| [`rickshawstop/`](rickshawstop/) | Rickshaw Stop, SF (Civic Center) | rickshawstop.com (calendar via WP REST API) | `:8050/rickshawstop/` | eclectic room (indie/rock/dance + the occasional stand-up); the HTML routes are Cloudflare-walled, so /calendar is read via the WordPress REST API, merging 12 month tables with the nearest list-view cards (clean name, support, genre, ages); stand-up genre → `comedy`, everything else `music`; Apple Music matching on all |
+| [`bellyup/`](bellyup/) | Belly Up, Solana Beach | bellyup.com (shared 6-room calendar) | `:8050/bellyup/` | the Belly Up promoter runs all six San Diego rooms from one TicketWeb calendar — one GET returns the multi-venue season and each of the six adapters keeps its own rows; music + occasional comedy; bellyup carries promoter placeholder rows with null `event_page` (by contract, see schema 5); Apple Music matching on all |
+| [`thesound/`](thesound/) | The Sound, Del Mar | bellyup.com (shared 6-room calendar) | `:8050/thesound/` | see the Belly Up row — same shared calendar, this venue's rows only |
+| [`thecasbah/`](thecasbah/) | The Casbah, San Diego | bellyup.com (shared 6-room calendar) | `:8050/thecasbah/` | see the Belly Up row — same shared calendar, this venue's rows only |
+| [`theobservatory/`](theobservatory/) | The Observatory, San Diego (North Park) | bellyup.com (shared 6-room calendar) | `:8050/theobservatory/` | see the Belly Up row — same shared calendar, this venue's rows only |
+| [`musicbox/`](musicbox/) | Music Box, San Diego (Little Italy) | bellyup.com (shared 6-room calendar) | `:8050/musicbox/` | see the Belly Up row — same shared calendar, this venue's rows only |
+| [`humphreys/`](humphreys/) | Humphreys Concerts by the Bay, San Diego | bellyup.com (shared 6-room calendar) | `:8050/humphreys/` | see the Belly Up row — currently an empty file (no rows on the shared calendar at build time); the file still ships with zeroed stats |
+| [`pappy/`](pappy/) | Pappy & Harriet's, Pioneertown | pappyandharriets.com (calendar via WP REST API) | `:8050/pappy/` | country/rock/roots desert saloon, grouped with the LA market in the app; the HTML routes are bot-walled, so /calendar is read via the WordPress REST API (12 month tables + nearest list-view cards); headliner/support derived from bill grammar (`ft:`/`w:`/`with` → support, `//` = co-headline, tour tail → show title); every published genre (Rock/Country/Jazz/Hip Hop) is `music`; Apple Music matching on all |
 
 ## Layout
 
@@ -113,7 +126,8 @@ Coverage is **honest**: a show whose venue page publishes no Spotify link gets
 | Independent, Brick & Mortar, Cafe du Nord, Greek, Fox | yes — per-artist social buttons on the detail page |
 | Castro | yes — per-attraction social row on the detail page |
 | Regency | yes — the AEG feed's association records carry them (no extra fetch) |
-| Fillmore, GAMH, August Hall, Warfield, Frost | no — the sites don't publish them (honest nulls) |
+| Fillmore, GAMH, August Hall, Warfield, Frost | no — the sites don't publish them; the registry turns on the Spotify API lookup (`common/spotify_api`) instead, so links still appear (`spotify_source: api`) |
+| Chapel, Rickshaw Stop, the Belly Up group (six rooms), Pappy & Harriet's | no — same deal: pages publish none, Spotify API lookup covers them (honest nulls where the API finds nothing) |
 
 ## Adding a new theater
 
