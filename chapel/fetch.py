@@ -33,6 +33,7 @@ URL = "https://thechapelsf.com/calendar/"
 MONTHS = {n: i + 1 for i, n in enumerate(
     ["january", "february", "march", "april", "may", "june",
      "july", "august", "september", "october", "november", "december"])}
+MONTHS_ABBR = {k[:3]: v for k, v in MONTHS.items()}
 
 
 def fetch(url=URL):
@@ -53,16 +54,26 @@ def clean(s):
 
 
 def _split_cards(tbl):
-    """(lookback_window, card_block) pairs. Each card's day number sits in a
+    """(cell_prefix, card_block) pairs. Each card's day number sits in a
     <div class="date-number"> that is a SIBLING BEFORE the card inside the same
-    <td>, so we must look back into the table to read it (a split-off card
-    block alone doesn't contain it)."""
+    <td>. cell_prefix is the text from the card's own <td> open tag up to the
+    card — i.e. exactly that cell's content before the card, which holds ONE
+    date-number (the card's day).
+
+    The window is bounded at the card's <td> start, NOT a fixed byte offset.
+    An empty weekday cell is ~48 bytes, so a fixed 300-char lookback reaches
+    back across 5-6 empty cells and re.search then returns the OLDEST
+    date-number in the span — a date 1-6 days EARLY. (This was the Chapel
+    stale-date bug: the raw HTML was correct, the window was not cell-scoped.)
+    Bounding to the own <td> makes the window hold exactly the card's day."""
     starts = [m.start() for m in re.finditer(
         r'<div class="[^"]*seetickets-calendar-event-container[^"]*"', tbl)]
     out = []
     for i, s in enumerate(starts):
         end = starts[i + 1] if i + 1 < len(starts) else len(tbl)
-        out.append((max(0, s - 300), tbl[s:end]))
+        td_starts = [m.start() for m in re.finditer(r'<td[\s>]', tbl[:s])]
+        win = td_starts[-1] if td_starts else 0
+        out.append((tbl[win:s], tbl[s:end]))
     return out
 
 
@@ -84,7 +95,7 @@ def parse(src):
         year = int(hm.group(2))
         if not mon:
             continue
-        for win, c in _split_cards(tbl):
+        for cell_prefix, c in _split_cards(tbl):
             def g(pat, flags=0):
                 m = re.search(pat, c, flags)
                 return m.group(1) if m else None
@@ -93,12 +104,12 @@ def parse(src):
             if not url or url in seen:
                 continue
             # The day number is a <div class="date-number"> SIBLING that
-            # precedes the card inside the same <td>, so it lives in the
-            # look-back window, not the card block. Read the nearest one.
-            dm = re.search(r'date-number[^>]*>\s*(\d{1,2})\s*<',
-                           tbl[win:win + 300] + c[:60])
-            day = int(dm.group(1)) if dm else None
-            # The card can also carry its own date cell (the list view does).
+            # precedes the card inside the same <td> (never inside the card
+            # block). cell_prefix spans exactly that <td>'s pre-card content,
+            # so take the LAST date-number in it — the card's own day.
+            days = re.findall(r'date-number[^>]*>\s*(\d{1,2})\s*<',
+                              cell_prefix + c[:80])
+            day = int(days[-1]) if days else None
             if day is None:
                 dm2 = re.search(r'date-number[^>]*>\s*(\d{1,2})\s*<', c[:200])
                 day = int(dm2.group(1)) if dm2 else None
@@ -144,6 +155,7 @@ def parse(src):
                 "age": age,
                 "ticket_link": url,
                 "ticket_status": status,
+                "aria_date": g(r'aria-label="[^"]*on\s+([A-Za-z]+ \d{1,2}(?:, \d{4})?)"'),
             })
             seen.add(url)
     rows.sort(key=lambda r: (r["date"] or "9999", r["doors"] or ""))
@@ -155,6 +167,19 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     open(RAW, "w").write(src)
     rows = parse(src)
+    # Cross-check: the venue's own aria-label carries the event date (yearless
+    # "Dec 07"). The table date and the aria date must agree on month+day —
+    # the only independent ground truth in the HTML. This is the tripwire that
+    # catches window drift (the 2026-10 stale-date bug) on a nightly run.
+    for r in rows:
+        a, d = r.get("aria_date"), r.get("date")
+        if a and d:
+            parts = a.split()
+            am = MONTHS_ABBR.get(parts[0].lower().rstrip(","))
+            if am is not None:
+                ad = int(parts[1])
+                if (am, ad) != (int(d[5:7]), int(d[8:10])):
+                    print(f"WARNING: aria/date disagree  {d}  aria='{a}'  {r['title']}")
     json.dump(rows, open(OUT, "w"), indent=1, ensure_ascii=False)
     no_date = [r["title"] for r in rows if not r["date"]]
     no_title = [r["title"] for r in rows if not r["title"]]
