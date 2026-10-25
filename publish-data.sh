@@ -55,6 +55,19 @@ BRANCH="${BRANCH:-main}"
 git checkout -q "$BRANCH" 2>/dev/null || git checkout -q -b "$BRANCH"
 # fresh empty repo (no commits yet): there is nothing to sync
 if git rev-parse --verify -q origin/"$BRANCH" >/dev/null 2>&1; then
+  # Guard 2 (2026-10-25): the reset below eats LOCAL commits too — the
+  # status guard above only catches uncommitted work. A hand-committed
+  # README (the 2026-10-24 schema-5 doc fix) survived that guard and was
+  # silently deleted here before it was ever pushed. Push local commits
+  # first so the reset becomes a no-op; abort (never reset) if the push
+  # is not fast-forward — losing hand edits beats publishing stale docs.
+  if [ "$(git rev-list --count "origin/$BRANCH..HEAD" 2>/dev/null)" -gt 0 ]; then
+    git push -q origin HEAD:"$BRANCH" || {
+      echo "ERROR: unpushed local commits in data-repo and the push failed (diverged?) — refusing to reset and lose them:"
+      git log --oneline "origin/$BRANCH..HEAD" | sed 's/^/  /'
+      exit 1
+    }
+  fi
   git reset -q --hard "origin/$BRANCH"
 fi
 
