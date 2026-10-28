@@ -192,6 +192,24 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "bgc": {
+        "key": "bgc",
+        "name": "Bill Graham Civic Auditorium",
+        "has_spotify_lookup": True,
+        "city": "San Francisco, CA",
+        "metro": SF_Metro,
+        "neighborhood": "Civic Center",
+        "dir": os.path.join(ROOT, "bgc"),
+        # Large Civic Center auditorium (99 Grove St, Another Planet
+        # Entertainment, wpengine WordPress): the /calendar listing is fully
+        # server-rendered (one GET = the whole season, no pagination) with
+        # clean headliner/support/date/times/button fields; detail pages add
+        # the age rating + per-artist Spotify links (the venue publishes
+        # them) + a headliner bio. Music only.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "events.json",
+    },
     "rickshawstop": {
         "key": "rickshawstop",
         "name": "Rickshaw Stop",
