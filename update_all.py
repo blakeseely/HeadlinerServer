@@ -101,14 +101,20 @@ def stamp_fetched(cache_path):
 
 def cache_age_ok(cache_path, max_age_h=24):
     """True when the capture should be reused: the file is missing (the build
-    will fail loudly and tell us), or it was fetched within max_age_h."""
+    will fail loudly and tell us), or it was fetched within max_age_h.
+    A capture without a .fetched_at stamp falls back to the file's mtime —
+    assuming fresh on a missing stamp froze pre-stamp captures forever
+    (bellyup group frozen at 2026-10-22, found 2026-11-05)."""
     stamp = cache_path + ".fetched_at"
     if not os.path.exists(stamp):
-        return True      # pre-stamp capture: assume fresh
-    try:
-        t = datetime.datetime.fromisoformat(open(stamp).read().strip())
-    except Exception:
-        return True
+        if not os.path.exists(cache_path):
+            return True
+        t = datetime.datetime.fromtimestamp(os.path.getmtime(cache_path))
+    else:
+        try:
+            t = datetime.datetime.fromisoformat(open(stamp).read().strip())
+        except Exception:
+            return True
     age_h = (datetime.datetime.now() - t).total_seconds() / 3600
     return age_h <= max_age_h
 
