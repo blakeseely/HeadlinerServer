@@ -128,7 +128,10 @@ def _split_heads(part):
 
 
 def _clean_support(part):
-    """Support clause -> [names]: split on comma, drop 'special guest'."""
+    """Support clause -> [names]: split on ' | ' and comma, drop 'special
+    guest'. Bellyup bills use '|' between support acts (Ballyhoo! 2027-01-29:
+    'w/ Chad Tepper | Keep Flying' kept the pipe literal — found 2026-11-05)."""
+    part = re.sub(r"\s*\|\s*", ",", part)
     names = []
     for s in part.split(","):
         s = _clean(_SPECIAL_GUEST_RE.sub("", s.strip(" -–—")))
