@@ -81,6 +81,14 @@ def fetch(url, retries=2):
     return None
 
 
+def _strip_show_label(t):
+    """The venue's start-time span carries a 'Show: ' label (the doors
+    span does not) — strip it so show_time is canonical 'H:MM pm'."""
+    if not t:
+        return None
+    return re.sub(r"^\s*show\s*:\s*", "", t, flags=re.I) or None
+
+
 def _text(fragment):
     """Tags -> whitespace-collapsed text, entities unescaped. Newlines kept
     as single spaces (support acts are <br>-separated and re-split on
@@ -157,7 +165,7 @@ def parse_shows(src):
             "id": m.group(1),
             "date": date_m.group(1) if date_m else None,
             "doors": _text(doors_m.group(1)) if doors_m else None,
-            "show_time": _text(show_m.group(1)) if show_m else None,
+            "show_time": _strip_show_label(_text(show_m.group(1))) if show_m else None,
             "headliner": head,
             "support_raw": sup_raw,
             "age": None,
