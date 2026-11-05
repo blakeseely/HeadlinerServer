@@ -59,6 +59,7 @@ DETAIL_MAX = 60
 STATUS_MAP = {
     "buy tickets": "on sale",
     "sold out": "sold out",
+    "sold out!": "sold out",
     "show moved": "moved",
     "sign up": "sign up",
     "waiting list": "waitlist",
