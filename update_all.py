@@ -99,7 +99,7 @@ def stamp_fetched(cache_path):
         f.write(datetime.datetime.now().isoformat(timespec="seconds"))
 
 
-def cache_age_ok(cache_path, max_age_h=24):
+def cache_age_ok(cache_path, max_age_h=23):
     """True when the capture should be reused: the file is missing (the build
     will fail loudly and tell us), or it was fetched within max_age_h.
     A capture without a .fetched_at stamp falls back to the file's mtime —

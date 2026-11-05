@@ -136,7 +136,13 @@ def split_name_title(title):
 
 
 SUPPORT_PREFIX_RE = re.compile(
-    r"^(in|a|an|the|hosted|featuring|ft\.?\b|by|directed)\b", re.I)
+    r"^(in|a|an|hosted|featuring|ft\.?\b|by|directed)\b", re.I)
+
+# Prose signals anywhere in the line: tour-name lines ("The Joint Tour",
+# "THE BEDROOM SESSIONS US TOUR An Evening With") are not bills. A bare
+# leading "the" is NOT prose — "The Wilder Blue" is a real act and the old
+# article blacklist dropped every "The X" support band (found 2026-11-05).
+PROSE_RE = re.compile(r"\btour\b|an evening with", re.I)
 
 
 def split_support(bottomline):
@@ -149,6 +155,8 @@ def split_support(bottomline):
     b = re.sub(r"\s+", " ", bottomline).strip()
     if ":" in b:
         return []  # show title / format line, not a bill
+    if PROSE_RE.search(b):
+        return []  # tour-name / format line, not a bill
     m = re.search(r"(?:with special guest|featuring|ft\.?|with)\s+(.*)$", b, re.I)
     if m:
         b = m.group(1).strip()
