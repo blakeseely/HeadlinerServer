@@ -95,7 +95,11 @@ def _card(src, start):
 def parse_events(src):
     """Extract every event card -> per-show records (dedup by detail id)."""
     rows, seen = [], set()
-    for m in re.finditer(r'<div class="entry\s+alt?\s*warfield clearfix\s*">', src):
+    # NOTE 'alt' is a per-row alternating stripe class: it must be an
+    # optional GROUP. 'entry\s+alt?\s+' parses as 'al' + optional 't' and
+    # never matches the non-striped rows — that silently halved this
+    # calendar for weeks (cleanroom review 2026-11-06: 12 of 25 events).
+    for m in re.finditer(r'<div\s+class="entry(?:\s+alt)?\s+warfield clearfix\s*"\s*>', src):
         card = _card(src, m.start())
 
         did_m = re.search(r"/events/detail/(\d+)", card)
@@ -122,6 +126,7 @@ def parse_events(src):
         status_text = _text(btn_m.group(2)) if btn_m else None
         if status_text:
             status = ("sold out" if "sold out" in status_text.lower()
+                      else "cancelled" if "cancel" in status_text.lower()
                       else "coming soon" if "coming soon" in status_text.lower()
                       else "on sale")
         else:
