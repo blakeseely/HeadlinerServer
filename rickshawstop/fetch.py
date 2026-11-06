@@ -74,13 +74,17 @@ def clean(s):
 
 
 def unwrap(href):
-    """Unwrap the urldefense spam-filter redirect to the real ticket URL."""
+    """Unwrap the urldefense spam-filter redirect to the real ticket URL.
+    Canonical form is `/v3/__<url>__;!!token…$` (the encoded URL ends at the
+    FIRST `__;`; urldefense encodes literal underscores as `__`); legacy forms
+    are the `?domain=…:__` suffix and the bare `/v3/__<url>` with the token
+    already trimmed off."""
     if not href:
         return None
-    m = re.match(r"https://urldefense\.com/v3/__([^?]+)\?.*?:__", href) or \
-        re.match(r"https://urldefense\.com/v3/__([^_].*?);__", href)
+    m = re.match(r"https?://urldefense\.com/v3/__(.+?)(?:__;|\$|\Z)", href)
     if m:
         href = m.group(1)
+    href = href.replace("__", "_")
     href = re.sub(r"\?.*$", "", href)   # drop ?afflky=… / camefrom=… tracking
     return href or None
 
@@ -162,16 +166,19 @@ def parse_tables(src):
 
             # buy-button text = ticket status ("Buy Tickets" / "Sold Out")
             status = None
+            # quote styles are mixed in the source (single AND double quoted
+            # class attrs); match both. Class is authoritative: sold-out buttons
+            # carry button-soldout but their TEXT says "More Info", so text-only
+            # detection can never see them.
             btn = re.search(
-                r'<a[^>]*class="[^"]*button-gettickets[^"]*"[^>]*>(.*?)</a>',
+                r"<a[^>]*class=['\"][^'\"]*(button-soldout|button-gettickets)[^'\"]*['\"][^>]*>(.*?)</a>",
                 card, re.S)
             if btn:
-                t = clean(btn.group(1))
-                if t:
-                    if re.search(r"sold\s*?out", t, re.I):
-                        status = "sold out"
-                    elif re.search(r"buy|tickets|info", t, re.I):
-                        status = "on sale"
+                t = clean(btn.group(2))
+                if btn.group(1) == "button-soldout" or (t and re.search(r"sold\s*?out", t, re.I)):
+                    status = "sold out"
+                elif t and re.search(r"buy|tickets|info", t, re.I):
+                    status = "on sale"
 
             rec = {
                 "url": url,
