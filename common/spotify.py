@@ -179,7 +179,7 @@ def extract_links(page_html):
             if pick is None and keep:
                 pick = keep[-1]
             if pick:
-                add(pick, m0.group(0) and page_html[m0.start():m0.start() + 300])
+                add(pick, m0.group(1))
     return {k: v for k, v in out.items() if v}
 
 
