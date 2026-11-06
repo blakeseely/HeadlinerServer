@@ -131,7 +131,6 @@ def main():
             event_type="other" if other else "music",
             headline_artists=[apple_music.artist_obj(h, lookup) for h in head_names],
             support_artists=[apple_music.artist_obj(s, lookup) for s in support],
-            multi_artist=len(head_names) > 1,
             show_title=show_title,
             date=r.get("date"),
             ticket_link=r.get("ticket_link"),

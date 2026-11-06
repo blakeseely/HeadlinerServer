@@ -139,7 +139,7 @@ def main():
             needs_review=False,
             headline_artists=[head],
             support_artists=support,
-            multi_artist=bool(support) or bool(_split_compound(head_name)),
+            multi_artist=bool(_split_compound(head_name)),
             show_title=show_title,
             presenters=split_presenters(r.get("prefix")),
             date=iso_date(r.get("date")) or (iso_date(dates[0]) if dates else None),

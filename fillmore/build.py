@@ -207,7 +207,6 @@ def main():
             event_type=SEGMENT_TYPE.get(r.get("segment"), "music"),
             headline_artists=heads,
             support_artists=sups,
-            multi_artist=len(head) > 1,
             show_title=show_title,
             date=parse_start(r.get("start")),
             doors=doors,

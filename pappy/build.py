@@ -222,7 +222,7 @@ def derive_bill(r, lookup):
     head_artists = [apple_music.artist_obj(h, lookup) for h in heads]
     support_artists = [apple_music.artist_obj(s, lookup)
                        for s in support_names]
-    multi = len(heads) > 1 or bool(support_artists) or "&" in (heads[0] or "")
+    multi = "&" in (heads[0] or "")
     return head_artists, support_artists, show_title, multi, review, status_note
 
 

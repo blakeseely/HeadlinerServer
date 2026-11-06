@@ -197,7 +197,7 @@ def main():
             needs_review=False,
             headline_artists=[head],
             support_artists=support,
-            multi_artist=len(support) > 0 or "&" in (head_name or ""),
+            multi_artist="&" in (head_name or ""),
             show_title=tour,
             date=iso_date(r.get("date")),
             doors=(r.get("doors") or None),

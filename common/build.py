@@ -276,7 +276,15 @@ def normalize(shows):
                         a.setdefault("apple_music", None)
                         a.setdefault("name", None)
             elif f == "multi_artist":
-                s.setdefault("multi_artist", False)
+                # Derived centrally (schema 6): 2+ billed artists appearing
+                # in the record (headline+support) implies multi. A venue's
+                # own True flag is honored (the '(Multiple Artists)' pseudo-
+                # bill, or a '&'/'and' compound co-headline held as one
+                # artist), so the field is a function of shows[] itself —
+                # never per-venue local heuristics, which had drifted apart.
+                s["multi_artist"] = bool(s.get("multi_artist")) or (
+                    len(s.get("headline_artists") or [])
+                    + len(s.get("support_artists") or [])) >= 2
             elif f == "doors":
                 s.setdefault(f, None)
                 if s.get(f):
@@ -399,7 +407,11 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "city": g.get("city"),
         "metro": g.get("metro"),
         "neighborhood": g.get("neighborhood"),
-        "schema": 5,  # incremented on any schema change; clients gate on it
+        "schema": 6,  # incremented on any schema change; clients gate on it
+                      # 6 (2026-11-05) — multi_artist derived centrally:
+                      # (headline+support billed count >= 2) OR an explicit
+                      # venue flag. Values only gained True vs venue-local
+                      # rules; no show lost a flag. Shape unchanged.
                       # 5 (2026-10-24) — upcoming-only retention (past shows
                       # dropped) + field_hints covers all 26 fields; show
                       # records are still 18 keys, artists still 8.

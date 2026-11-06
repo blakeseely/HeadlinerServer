@@ -163,7 +163,7 @@ def main():
                 heads = [apple_music.artist_obj(p, lookup) for p in parts]
 
         note = status_note
-        multi = len(heads) > 1 or bool(support) or "&" in (head_name or "")
+        multi = "&" in (head_name or "")
 
         shows.append(build.show(
             event_type=classify_event(r.get("genre"), title),

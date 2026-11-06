@@ -77,7 +77,7 @@ def main():
             needs_review=False,
             headline_artists=[head],
             support_artists=support,
-            multi_artist=bool(support) or "&" in (head_name or ""),
+            multi_artist="&" in (head_name or ""),
             show_title=tour,
             note=status_note,
             date=r.get("date"),

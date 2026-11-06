@@ -163,7 +163,6 @@ def main():
             needs_review=False,
             headline_artists=[apple_music.artist_obj(h, lookup) for h in heads],
             support_artists=[apple_music.artist_obj(s, lookup) for s in support],
-            multi_artist=len(heads) > 1 or len(support) > 1,
             show_title=show_title,
             presenters=presenters,
             date=parse_date(r.get("date_full") or r.get("date")),

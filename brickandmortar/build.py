@@ -177,7 +177,6 @@ def main():
             needs_review=False,
             headline_artists=[apple_music.artist_obj(h, lookup) for h in heads],
             support_artists=[apple_music.artist_obj(s, lookup) for s in support],
-            multi_artist=len(heads) > 1,
             show_title=tour,
             description=r.get("description"),
             date=parse_date(r.get("date")),

@@ -194,7 +194,6 @@ def main():
                               for h in heads],
             support_artists=[apple_music.artist_obj(s, lookup)
                              for s in support],
-            multi_artist=len(heads) > 1,
             show_title=tour,
             set_format=set_format,
             date=parse_date(r.get("date")),

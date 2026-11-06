@@ -110,7 +110,6 @@ def main():
             needs_review=False,
             headline_artists=[apple_music.artist_obj(head, lookup)],
             support_artists=[apple_music.artist_obj(s, lookup) for s in support],
-            multi_artist=len(support) > 1,
             show_title=None,
             presenters=presenters,
             date=r.get("date"),

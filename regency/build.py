@@ -185,7 +185,6 @@ def main():
             event_type="music",
             headline_artists=[apple_music.artist_obj(h, lookup) for h in heads],
             support_artists=[apple_music.artist_obj(s, lookup) for s in support],
-            multi_artist=len(heads) > 1,
             show_title=show_title,
             presenters=[t["presentedByText"]] if t.get("presentedByText") else None,
             set_format=set_format,
