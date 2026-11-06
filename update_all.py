@@ -43,6 +43,14 @@ SCHEDULE_FIELDS = ("event_type", "headline_artists", "support_artists",
                    "ticket_link", "ticket_status", "age_rating", "note")
 ARTIST_IDENTITY = ("name",)          # only the billed NAME defines a show
 
+# Data-safety guard: markup drift makes a fetcher return 0 or few parses
+# while exiting 0 — a silent count: 0 publish is worse than no publish at
+# all. If the rebuilt feed collapses vs yesterday's, restore the previous
+# capture + feed and fail the venue LOUDLY (checked in the runner, one
+# chokepoint covering every fetcher).
+GUARD_MIN_OLD = 5      # only guard venues that normally have >= 5 shows
+GUARD_MAX_RATIO = 0.25 # new feed < 25% of old feed => drift suspect
+
 
 def show_key(s):
     if s.get("event_page"):
@@ -139,6 +147,11 @@ def update_venue(v, full, refresh):
     #    expensive site-crawl part; --refresh forces a re-crawl)
     if v.get("fetch_cmd"):
         cache = os.path.join(d, "cache", v.get("cache", "vfinal.json"))
+        # backup the known-good capture (+stamp) so a guard trip can restore
+        if os.path.exists(cache):
+            shutil.copy2(cache, cache + ".prev")
+            if os.path.exists(cache + ".fetched_at"):
+                shutil.copy2(cache + ".fetched_at", cache + ".fetched_at.prev")
         if not refresh and cache_age_ok(cache):
             print("      (fetch: cache < 23h old — skipping site crawl; "
                   "use --refresh to force)")
@@ -192,6 +205,22 @@ def update_venue(v, full, refresh):
 
     # 5. diff vs the pre-run JSON
     new = load_shows(shows_path)
+    # GUARD: a collapsed feed is treated as markup drift (fetchers exit 0
+    # when their selectors match nothing), never as a real calendar — the
+    # previous capture + feed are restored and the venue fails LOUDLY, so
+    # nothing wrong reaches the published data.
+    if len(old) >= GUARD_MIN_OLD and len(new) < max(1, int(GUARD_MAX_RATIO * len(old))):
+        print(f"  !! {key}: GUARD TRIPPED — feed collapsed {len(old)} -> "
+              f"{len(new)} shows. Suspected site markup drift; restoring "
+              f"previous capture+feed, venue marked FAILED.", file=sys.stderr)
+        if v.get("fetch_cmd"):
+            cache = os.path.join(d, "cache", v.get("cache", "vfinal.json"))
+            if os.path.exists(cache + ".prev"):
+                shutil.copy2(cache + ".prev", cache)
+                if os.path.exists(cache + ".fetched_at.prev"):
+                    shutil.copy2(cache + ".fetched_at.prev", cache + ".fetched_at")
+        run("python3 build.py", d)   # regenerate the feed from the restored cache
+        return False
     added, removed, sched, links = diff_shows(old, new)
     h = lambda k: (new.get(k) or old.get(k) or {}).get("date") or "?"
     print(f"  diff vs last run: {len(new)} shows — "

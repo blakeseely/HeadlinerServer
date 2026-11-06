@@ -101,6 +101,8 @@ for venue in sorted(os.listdir(root)):
         for fn in os.listdir(cdir):
             p = os.path.join(cdir, fn)
             try:
+                if fn.endswith(".prev"):
+                    continue
                 if fn.endswith(".fetched_at"):
                     t = open(p).read().strip()
                 elif fn in ("lookup.json", "spotify_lookup.json") or fn.startswith("."):
