@@ -10,3 +10,5 @@ __pycache__/
 **/cache/
 data-repo/
 .env
+
+.DS_Store
