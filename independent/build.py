@@ -289,7 +289,9 @@ def main():
     events = json.load(open(SRC))
     lookup = load_lookup()
     today = datetime.date.today().isoformat()
-    base_year = datetime.date.today().year
+    _now = datetime.date.today()
+    base_year = _now.year
+    base_month = _now.month
     shows = []
     for ev in events:
         lines = [l.strip() for l in (ev.get("lines") or [])]
@@ -403,7 +405,12 @@ def main():
         if m:
             mon = MONTHS.get(m.group(2)[:3]); day = int(m.group(3))
             if mon:
-                year = base_year if mon >= 10 else base_year + 1
+                # upcoming-only feed: a month < the current month has already
+                # rolled over, so it belongs to next year. Hardcoding a
+                # >= 10 boundary mis-years every Jan-Sep show by +1 from
+                # January onward (2027 rollover), leaving phantom year-out
+                # shows the past-drop filter can never evict.
+                year = base_year if mon >= base_month else base_year + 1
                 iso = f"{year}-{mon:02d}-{day:02d}"
 
         rec = common_build.show(
