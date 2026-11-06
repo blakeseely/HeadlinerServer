@@ -122,14 +122,16 @@ def parse(src):
             # status: "Buy Tickets" (on sale) / "Sold Out" / "More Info" (no
             # public sale — treat as None, not a real status).
             status = None
-            btn = re.search(r'<(?:a|div)\s+[^>]*class="[^"]*button-gettickets[^"]*"[^>]*>(.*?)</(?:a|div)>', c, re.S)
+            # button class is authoritative: sold-out buttons render as
+            # class="… button-soldout" (the gettickets class disappears entirely),
+            # so a button-gettickets-only match silently drops every sellout.
+            btn = re.search(r'<(?:a|div)\s+[^>]*class="[^"]*(button-soldout|button-gettickets)[^"]*"[^>]*>(.*?)</(?:a|div)>', c, re.S)
             if btn:
-                t = clean(btn.group(1))
-                if t:
-                    if re.search(r"sold\s*?out", t, re.I):
-                        status = "sold out"
-                    elif re.search(r"buy|tickets", t, re.I):
-                        status = "on sale"
+                t = clean(btn.group(2))
+                if btn.group(1) == "button-soldout" or (t and re.search(r"sold\s*?out", t, re.I)):
+                    status = "sold out"
+                elif t and re.search(r"buy|tickets", t, re.I):
+                    status = "on sale"
             # title (first event-title anchor); support; times
             title = clean(g(r'seetickets-calendar-event-title[^>]*>.*?<a[^>]*>(.*?)</a>', re.S))
             sup = clean(g(r'supporting-talent[^>]*>(.*?)</p>', re.S))
