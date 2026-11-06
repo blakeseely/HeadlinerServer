@@ -302,6 +302,46 @@ def normalize(shows):
     return shows
 
 
+def effective_fetch_dt(cache_path):
+    """Datetime of the last real fetch of a capture file: the NEWER of the
+    `.fetched_at` stamp and the capture's own mtime. update_all is the only
+    stamp writer, so a `fetch.py` run directly refreshed the capture but left
+    a stale stamp behind — trusting the stamp alone under-counted freshness
+    (and scraped_at). None only when there is no capture at all."""
+    import datetime as _dt
+    t = None
+    stamp = cache_path + ".fetched_at"
+    if os.path.exists(stamp):
+        try:
+            t = _dt.datetime.fromisoformat(open(stamp).read().strip())
+        except Exception:
+            t = None
+    if os.path.exists(cache_path):
+        mt = _dt.datetime.fromtimestamp(os.path.getmtime(cache_path))
+        if t is None or mt > t:
+            t = mt
+    return t
+
+
+def _fetch_date(venue_id):
+    """scraped_at must answer 'as of when is this data current?', so return
+    when the capture was FETCHED, not when the build ran: rebuilds of a stale
+    cache were indistinguishable from fresh crawls (a 13-day-old rickshawstop
+    feed claimed a fresh scraped_at every night, found 2026-11-05). Falls
+    back to the build date only when no capture exists."""
+    import datetime as _dt
+    try:
+        entry = venues.VENUES.get(venue_id) or {}
+        cache = os.path.join(os.getcwd(), "cache",
+                             entry.get("cache") or "vfinal.json")
+        t = effective_fetch_dt(cache)
+        if t:
+            return t.date().isoformat()
+    except Exception:
+        pass
+    return _dt.date.today().isoformat()
+
+
 def run_build(venue, venue_id, venue_url, source_url, shows, stats):
     """Sort, drop past shows, recompute stats, write data/shows.json.
 
@@ -364,7 +404,7 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
                       # dropped) + field_hints covers all 26 fields; show
                       # records are still 18 keys, artists still 8.
         "field_hints": field_hints(),
-        "scraped_at": _dt.date.today().isoformat(),
+        "scraped_at": _fetch_date(venue_id),
         "count": len(shows),
         "shows": shows,
         "stats": stats,

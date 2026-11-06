@@ -11,7 +11,7 @@ For each venue in common/venues.py, in order:
 Incremental (default): lookup.py's resume mode skips every artist that
 already has a terminal status in <venue>/cache/lookup.json, so a typical
 run spends its Apple Music time only on NEW or previously-failed artists.
-The site is re-crawled only when the venue's cache is > 24h old (a
+The site is re-crawled only when the venue's cache is > 23h old (a
 `.fetched_at` stamp is written after each fetch); `--refresh` forces a
 re-crawl, and `--full` implies it and also clears each venue's lookup
 cache for a complete Apple Music re-match.
@@ -33,6 +33,7 @@ import os, sys, json, shutil, subprocess, datetime
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 from common import venues as registry
+from common import build as common_build
 
 # record fields whose change is a real schedule change (everything else —
 # the apple_music fields inside artist dicts, description, needs_review —
@@ -102,19 +103,14 @@ def stamp_fetched(cache_path):
 def cache_age_ok(cache_path, max_age_h=23):
     """True when the capture should be reused: the file is missing (the build
     will fail loudly and tell us), or it was fetched within max_age_h.
-    A capture without a .fetched_at stamp falls back to the file's mtime —
-    assuming fresh on a missing stamp froze pre-stamp captures forever
-    (bellyup group frozen at 2026-10-22, found 2026-11-05)."""
-    stamp = cache_path + ".fetched_at"
-    if not os.path.exists(stamp):
-        if not os.path.exists(cache_path):
-            return True
-        t = datetime.datetime.fromtimestamp(os.path.getmtime(cache_path))
-    else:
-        try:
-            t = datetime.datetime.fromisoformat(open(stamp).read().strip())
-        except Exception:
-            return True
+    Effective fetch time = newer of the .fetched_at stamp and the file's
+    mtime (see common.build.effective_fetch_dt) — assuming fresh on a missing
+    stamp froze pre-stamp captures forever (bellyup group frozen at
+    2026-10-22, found 2026-11-05), and trusting a stale stamp alone
+    under-counted directly-run fetches."""
+    t = common_build.effective_fetch_dt(cache_path)
+    if t is None:
+        return True
     age_h = (datetime.datetime.now() - t).total_seconds() / 3600
     return age_h <= max_age_h
 
@@ -144,7 +140,7 @@ def update_venue(v, full, refresh):
     if v.get("fetch_cmd"):
         cache = os.path.join(d, "cache", v.get("cache", "vfinal.json"))
         if not refresh and cache_age_ok(cache):
-            print("      (fetch: cache < 24h old — skipping site crawl; "
+            print("      (fetch: cache < 23h old — skipping site crawl; "
                   "use --refresh to force)")
         else:
             rc, _ = run(v["fetch_cmd"], d)

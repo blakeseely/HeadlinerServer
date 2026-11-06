@@ -89,8 +89,31 @@ for venue in sorted(os.listdir(root)):
     raw = open(src).read()
     open(os.path.join(dst_dir, "shows.json"), "w").write(raw)
     shows = updated = city = metro = None
+    fetched_at = None
     domains = {"event_type": [], "ticket_status": []}
     sources = []
+    # true fetch instant (hour-level): newer of any cache/*.fetched_at stamp
+    # and the capture files' mtime (mirrors common.build.effective_fetch_dt;
+    # lookup caches are excluded — they update on every build, not on fetch).
+    # scraped_at inside the feed is date-granular by contract.
+    cdir = os.path.join(root, venue, "cache")
+    try:
+        for fn in os.listdir(cdir):
+            p = os.path.join(cdir, fn)
+            try:
+                if fn.endswith(".fetched_at"):
+                    t = open(p).read().strip()
+                elif fn in ("lookup.json", "spotify_lookup.json") or fn.startswith("."):
+                    continue
+                else:
+                    t = datetime.datetime.fromtimestamp(
+                        os.path.getmtime(p)).isoformat(timespec="seconds")
+                if t and (fetched_at is None or t > fetched_at):
+                    fetched_at = t
+            except Exception:
+                pass
+    except Exception:
+        pass
     try:
         doc = json.loads(raw)
         shows = doc.get("shows", [])
@@ -116,6 +139,7 @@ for venue in sorted(os.listdir(root)):
         "venue_id": venue, "file": f"{venue}/shows.json",
         "city": city, "metro": metro,
         "updated_at": updated,
+        "fetched_at": fetched_at,
         "oldest_show_date": shows[0].get("date") if shows else None,
         "value_domains": domains,
         "show_count": len(shows or []),
