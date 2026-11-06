@@ -110,8 +110,18 @@ def parse_cards(src):
         sup_spans = re.findall(r'class="support"[^>]*>(.*?)</div>', card, re.S)
         doors_m = re.search(r'event__doors-open">([^<]*)', card)
         show_m = re.search(r'event__start-time">([^<]*)', card)
-        btn_m = re.search(r'class="button[^"]*(?:soldout)?[^"]*"[^>]*>([^<]*)', card)
-        btn_cls = re.search(r'class="(button[^"]*soldout[^"]*)"', card)
+        # ticket button = the <a class="button …"> anchor that is NOT the
+        # "more-info" link (which points at the venue event page). This theme
+        # puts href BEFORE class in the anchor, so extract from the whole tag.
+        btn_href, btn_soldout = None, False
+        for tag_m in re.finditer(r'<a\b[^>]*class="button\b[^"]*"[^>]*>', card):
+            tag = tag_m.group(0)
+            if "more-info" in tag:
+                continue
+            hm = re.search(r'href="([^"]+)"', tag)
+            btn_href = (html.unescape(hm.group(1)).strip() or None) if hm else None
+            btn_soldout = "soldout" in tag
+            break
         href_m = re.search(r'href="(' + BASE + r'/events/[^"]+)"', card)
 
         # the venue's markup: Doors: <span>6:30 pm | </span> <span>Show: 7:30 pm</span>
@@ -144,9 +154,8 @@ def parse_cards(src):
             "support": sup,
             "doors": doors,
             "show_time": show_time,
-            "ticket_status": "sold out" if btn_cls else "on sale",
-            "ticket_link": (html.unescape(btn_m.group(1)).strip() or None)
-                            if btn_m else None,
+            "ticket_status": "sold out" if btn_soldout else ("on sale" if btn_href else None),
+            "ticket_link": btn_href,
             "event_page": html.unescape(href_m.group(1)) if href_m else None,
             "age": None,
             "notice": None,
