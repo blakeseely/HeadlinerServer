@@ -363,6 +363,25 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "wonderball": {
+        "key": "wonderball",
+        "name": "Wonder Ballroom",
+        "has_spotify_lookup": True,
+        "city": "Portland, OR",
+        "metro": "Portland",
+        "neighborhood": "Sullivan's Gulch",
+        "dir": os.path.join(ROOT, "wonderball"),
+        # WordPress + the venue group's own rhp-events plugin (same shop as
+        # Roseland): /events/ is fully server-rendered — head, support h4,
+        # promoter, doors/show line, age, cost, CTA status class, etix link,
+        # all on the card in ONE GET. No TEC REST (404), no pagination, no
+        # detail crawl. Title status prefixes (*CANCELLED* / *Postponed* /
+        # MOVED TO …) are interpreted by the build. Site publishes no
+        # per-artist links, so the Spotify API lookup fills what it can.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
 }
 
 
