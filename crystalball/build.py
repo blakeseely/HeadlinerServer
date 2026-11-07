@@ -86,7 +86,13 @@ def billed_title(r):
         if not extra:
             continue
         if _TOUR_CLAUSE_RE.match(extra):
-            title += " — " + extra
+            # a h2 like "Presents Still Searching" is the headliner's OWN
+            # tour billed as "X Presents Y" — keep the headliner, put the
+            # tour in the dash tail (parse_bill reads "Senses Fail — Presents
+            # Still Searching" as presenter Senses Fail + headliner Still
+            # Searching, so the leading Presents must go before parsing).
+            tail = re.sub(r"(?i)^presents?\s+", "", extra).strip()
+            title += " — " + (tail or extra)
         elif _WITH_CLAUSE_RE.match(extra):
             title += " " + extra
         else:

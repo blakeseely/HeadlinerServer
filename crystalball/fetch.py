@@ -28,10 +28,12 @@ event URL:
      today) — status maps from button presence and keeps any future button
      text verbatim.
 
-BACKBONE = the card grid: it is what the venue bills as its show calendar.
-The ~17 REST-only rows are recurring non-show programming (History & Art
-Tour, First Thursday market) — the fetch SKIPS them and prints their titles
-as a warning so a REAL show ever appearing card-less is visible, not silent.
+BACKBONE = the card grid for BILLING FIELDS, but the REST rows are the
+UNIVERSE: every REST row joins in unless it matches RECURRING_PROGRAM
+(the venue's museum tour / market — genuine non-shows). A real show can
+appear in REST but be card-less: Trampled by Turtles 2027-02-19 (found by
+the nightly validator 2026-11-06) — those rows come in with billing from
+their detail page and ticket link from the etix anchor there.
 
 Doors/show semantics: TEC start_date is the SHOW start (Sienna Spiro:
 start_date 20:00 = "8pm show"), so show_time falls back to start_date. The
@@ -60,7 +62,10 @@ BASE = "https://www.crystalballroompdx.com"
 REST = BASE + "/wp-json/tribe/events/v1/events?per_page=50&page={page}"
 CARD_PAGES = [BASE + "/"] + [BASE + f"/events/page/{n}/" for n in range(2, 13)]
 REST_MAX_PAGES = 10
-DETAIL_MAX = 120
+DETAIL_MAX = 160
+# the venue's recurring non-show programming (museum tour, monthly market) —
+# deliberately NOT in the feed; mirror: validator SOURCES['crystalball'].exclude_re
+RECURRING_PROGRAM = re.compile(r"(?i)history\s*(?:&|and|–|-)\s*art\s*tour|first\s+thursday")
 
 
 def fetch(url, retries=2):
@@ -173,14 +178,14 @@ def parse_cards(src):
     return cards
 
 
-def parse_time_block(src):
-    """Detail page -> {head, support_raw, doors, show, age}. Every event's
+def parse_time_block(src, page_url=None):
+    """Detail page -> {head, support_raw, doors, show, age, ticket_link}. Every event's
     detail page bills h1 `display-in-title` + h2 `hidden-card-title` (the
     list card flavors only sometimes carry them) and carries a
     server-rendered `event-singular-time-details` html module ("5:30pm
     doors, 7pm show" + the age note). Honest nulls; venue wording verbatim."""
     out = {"head": None, "support_raw": None,
-           "doors": None, "show": None, "age": None}
+           "doors": None, "show": None, "age": None, "ticket_link": None}
     if not src:
         return out
     m = (re.search(r"display-in-title[^>]*>(.*?)</h1>", src, re.S)
@@ -191,6 +196,26 @@ def parse_time_block(src):
     m = re.search(r"hidden-card-title[^>]*>(.*?)</h2>", src, re.S)
     if m:
         out["support_raw"] = _title_frag(m.group(1))
+    # ticket link: buy-button anchor if present, else the venue's etix/tix
+    # anchor anywhere on the page (card-less shows bill only here; the APE
+    # attribute-order rule: pull href from inside the whole <a> tag).
+    for tagm in re.finditer(r"<a\b[^>]*>", src):
+        tag = tagm.group(0)
+        if re.search(r"""class=["']buy-button\b""", tag):
+            hm = re.search(r"""href=["']([^"']+)""", tag)
+            if hm:
+                out["ticket_link"] = html.unescape(hm.group(1))
+                break
+    if not out["ticket_link"]:
+        cands = [html.unescape(h) for h in re.findall(
+            r"""href=["']([^"']*(?:etix\.com|ticketmaster\.com|ticketweb)[^"']*)""", src)]
+        if cands:
+            # detail pages can list related events with their own buy links:
+            # prefer the candidate whose URL words overlap THIS event's slug
+            slug_words = set(re.findall(r"[a-z0-9]{4,}", (page_url or "").lower()))
+            def score(u):
+                return len(slug_words & set(re.findall(r"[a-z0-9]{4,}", u.lower())))
+            out["ticket_link"] = max(cands, key=score) if len(cands) > 1 else cands[0]
     i = src.find("event-singular-time-details")
     if i >= 0:
         # module text up to the next fl-module (or a generous window)
@@ -224,7 +249,7 @@ def fetch_details(urls):
     todo = [u for u in urls if u not in have][:DETAIL_MAX]
     if todo:
         def work(u):
-            return u, parse_time_block(fetch(u))
+            return u, parse_time_block(fetch(u), u)
         with ThreadPoolExecutor(max_workers=3) as ex:
             for u, fields in ex.map(work, todo):
                 have[u] = fields
@@ -280,6 +305,31 @@ def main():
         })
     rows.sort(key=lambda r: (r.get("start_iso") or r.get("date") or ""))
 
+    # Card-less REST rows: real shows the tour-schedule widget omits come in
+    # too (Trampled by Turtles 2027-02-19 was exactly this); only the venue's
+    # recurring non-show programming is refused.
+    cardless, skipped = [], []
+    used = {r["event_page"] for r in rows}
+    for u, e in rest.items():
+        if u in used:
+            continue
+        if RECURRING_PROGRAM.search(e.get("title") or ""):
+            skipped.append((e.get("start") or "")[:10] + "  " + (e.get("title") or "?"))
+            continue
+        cardless.append({
+            "date": (e.get("start") or "")[:10] or None,
+            "start_iso": e.get("start"),
+            "end_iso": e.get("end"),
+            "all_day": e.get("all_day"),
+            "head_billed": None, "support_billed": None, "special_billing": None,
+            "promoter": None, "ticket_status_raw": None, "ticket_link": None,
+            "event_page": u, "rest_title": e.get("title"),
+            "cost": e.get("cost"),
+            "description": (e.get("description") or "")[:1500] or None,
+        })
+    rows.extend(cardless)
+    rows.sort(key=lambda r: (r.get("start_iso") or r.get("date") or ""))
+
     details = fetch_details([r["event_page"] for r in rows])
     for r in rows:
         d = details.get(r["event_page"]) or {}
@@ -291,15 +341,17 @@ def main():
         r["doors"] = d.get("doors")
         r["show_time"] = d.get("show")
         r["age"] = d.get("age")
+        if not r.get("ticket_link") and d.get("ticket_link"):
+            r["ticket_link"] = d["ticket_link"]
+            r["ticket_status_raw"] = r["ticket_status_raw"] or "Tickets"
 
     json.dump(rows, open(os.path.join(CACHE, "shows.json"), "w"),
               indent=1, ensure_ascii=False)
 
-    used = {r["event_page"] for r in rows}
-    skipped = sorted((v.get("start") or "")[:10] + "  " + (v.get("title") or "?")
-                     for u, v in rest.items() if u not in used)
-    print(f"rest rows: {len(rest)}  cards: {len(rows)}")
-    print(f"rest rows with no card (skipped — recurring venue programming): {len(skipped)}")
+    print(f"rest rows: {len(rest)}  cards: {len(rows) - len(cardless)}  card-less shows added: {len(cardless)}")
+    for r in cardless:
+        print(f"    CARDLESS {r['date']}  {r['rest_title']}")
+    print(f"recurring non-show programming skipped: {len(skipped)}")
     for line in skipped[:10]:
         print(f"    {line}")
     if len(skipped) > 10:
