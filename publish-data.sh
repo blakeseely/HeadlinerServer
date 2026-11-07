@@ -74,9 +74,20 @@ fi
 # --- stage the venue JSON + manifest (stays here, no cd) ---
 export ROOT
 python3 - <<'PY'
-import os, json, hashlib, datetime
+import os, json, hashlib, datetime, sys
 root = os.environ["ROOT"]
 data = os.path.join(root, "data-repo")
+# Venue registry: the single source for the once-geocoded lat/lon pair each
+# venue carries (common/venues.py). A venue missing lat/lon publishes null
+# coords — the cleanroom audit flags that as a finding, by design; the
+# publish itself must never fail over it.
+sys.path.insert(0, root)
+try:
+    from common import venues as _venues
+    REG = _venues.VENUES
+except Exception as e:
+    print("WARN: venue registry import failed (lat/lon will publish null):", e)
+    REG = {}
 manifest = {"generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(), "venues": []}
 for venue in sorted(os.listdir(root)):
     if not os.path.isdir(os.path.join(root, venue)):
@@ -140,6 +151,9 @@ for venue in sorted(os.listdir(root)):
     manifest["venues"].append({
         "venue_id": venue, "file": f"{venue}/shows.json",
         "city": city, "metro": metro,
+        # flat WGS84 decimal coords, geocoded once per venue (registry-owned)
+        "lat": REG.get(venue, {}).get("lat"),
+        "lon": REG.get(venue, {}).get("lon"),
         "updated_at": updated,
         "fetched_at": fetched_at,
         "oldest_show_date": shows[0].get("date") if shows else None,
