@@ -54,7 +54,12 @@ GUARD_MAX_RATIO = 0.25 # new feed < 25% of old feed => drift suspect
 
 def show_key(s):
     if s.get("event_page"):
-        return s["event_page"]
+        # one event page can EXPLODE into many feed rows (Keller Broadway
+        # runs: per-performance rows, incl. matinee+evening same-day) —
+        # page alone collapses them; date+time keeps them distinct while
+        # single-date venues stay byte-stable across runs.
+        return "{}::{}::{}".format(s["event_page"], s.get("date") or "",
+                                   s.get("show_time") or "")
     h = " / ".join(a["name"] for a in s.get("headline_artists", [])
                    if isinstance(a, dict))
     return f"{s.get('date')}::{h}"

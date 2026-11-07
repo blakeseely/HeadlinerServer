@@ -383,6 +383,25 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "keller": {
+        "key": "keller",
+        "name": "Keller Auditorium",
+        "has_spotify_lookup": True,
+        "city": "Portland, OR",
+        "metro": "Portland",
+        "neighborhood": "Grand Ave / Cultural District",
+        "dir": os.path.join(ROOT, "keller"),
+        # City-owned, Metro-operated Portland'5 house — its schedule ONLY
+        # exists in the portland5.com calendar (old kellerauditorium.
+        # portlandoregon.gov DNS is dead; kellerauditorium.org is spam
+        # squat). One feed row PER PERFORMANCE: Broadway runs explode from
+        # event pages. This is the multiplex venue — event_type taxonomy
+        # (music/comedy/other) does real classification work here. Spotify
+        # API lookup feeds the music rows; theater rows keep the names.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
     "roseland": {
         "key": "roseland",
         "name": "Roseland Theater",
