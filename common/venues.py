@@ -340,6 +340,29 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    # ------------------------------------------------------------------
+    # Portland metro — the Crystal Ballroom (McMenamins / Edgefield
+    # Concerts) opens the fourth market.
+    # ------------------------------------------------------------------
+    "crystalball": {
+        "key": "crystalball",
+        "name": "Crystal Ballroom",
+        "has_spotify_lookup": True,
+        "city": "Portland, OR",
+        "metro": "Portland",
+        "neighborhood": "West End",
+        "dir": os.path.join(ROOT, "crystalball"),
+        # WordPress + The Events Calendar: the TEC REST API (ISO dates +
+        # description) joined with the tour-schedule CARD grid (buy buttons,
+        # promoter, billed h1/h2) by event URL; per-show detail pages add
+        # the doors/show line + age note. The 17 REST-only rows are
+        # recurring non-show programming (History & Art Tour, markets) —
+        # the fetch skips them with a printed warning. Site publishes no
+        # per-artist links, so the Spotify API lookup fills what it can.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
 }
 
 
