@@ -421,7 +421,14 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "shows": shows,
         "stats": stats,
     }
-    path = os.path.join(os.getcwd(), "data", "shows.json")
+    # The venue registry is the single source of truth for WHERE a venue's
+    # data lives (CWD-relative writes silently collided when builds ran from
+    # the repo root, 2026-11-07: every feed overwrote one ./data/shows.json).
+    try:
+        base = venues.get_venue(venue_id)["dir"]
+    except Exception:
+        base = os.getcwd()
+    path = os.path.join(base, "data", "shows.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(doc, f, indent=2, ensure_ascii=False)

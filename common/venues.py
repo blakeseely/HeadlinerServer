@@ -523,6 +523,152 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "paramount": {
+        "key": "paramount",
+        "lat": 47.6132,  # 911 Pine St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
+        "lon": -122.3314,
+        "name": "The Paramount",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "Downtown",
+        "dir": os.path.join(ROOT, "paramount"),
+        # Seattle Theatre Group house (Paramount/Moore/Neptune share ONE
+        # MEC calendar on stgpresents.org). Feed rows are PER PERFORMANCE
+        # via the public admin-ajax mec_list_load_more (no nonce): each
+        # card carries the true curtain time in mec-start-time — the MEC
+        # JSON-LD clock is timezone-corrupt, only its DATE half is trusted.
+        # Broadway runs dominate; event_type does classification work.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "stg.json",
+    },
+    "moore": {
+        "key": "moore",
+        "lat": 47.6117,  # 1932 2nd Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
+        "lon": -122.3414,
+        "name": "The Moore",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "Downtown",
+        "dir": os.path.join(ROOT, "moore"),
+        # STG shared MEC source — see paramount entry.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "stg.json",
+    },
+    "neptune": {
+        "key": "neptune",
+        "lat": 47.6611,  # 1312 NE 41st St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
+        "lon": -122.314,
+        "name": "The Neptune",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "University District",
+        "dir": os.path.join(ROOT, "neptune"),
+        # STG shared MEC source — see paramount entry.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "stg.json",
+    },
+    # --- Seattle AEG/AXS family: showboxpresents.com is ONE aggregate
+    # calendar for both rooms (card venue label splits); neumos.com is its
+    # own Carbonhouse skin. Shared mechanics: common/aeg.py. ---
+    "showbox": {
+        "key": "showbox",
+        "lat": 47.6085,
+        "lon": -122.3395,
+        "name": "The Showbox",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "Downtown",
+        "dir": os.path.join(ROOT, "showbox"),
+        # AEG/AXS aggregate calendar — see showboxpresents note above.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "aeg.json",
+    },
+    "showboxsodo": {
+        "key": "showboxsodo",
+        "lat": 47.5880,
+        "lon": -122.3339,
+        "name": "Showbox SoDo",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "SoDo",
+        "dir": os.path.join(ROOT, "showboxsodo"),
+        # Same aggregate calendar as showbox; venue label "Showbox SoDo".
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "aeg.json",
+    },
+    "neumos": {
+        "key": "neumos",
+        "lat": 47.6140,
+        "lon": -122.3196,
+        "name": "Neumos",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "Capitol Hill",
+        "dir": os.path.join(ROOT, "neumos"),
+        # Own AEG/AXS Carbonhouse site; 406s Chrome UAs (common/aeg.py).
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "aeg.json",
+    },
+    # --- El Corazón + Funhouse: one org, one Webflow site, one calendar;
+    # the venue field splits the two feeds (common/ecfun.py). ---
+    "elcorazon": {
+        "key": "elcorazon",
+        "lat": 47.6187,
+        "lon": -122.3293,
+        "name": "El Corazón",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "South Lake Union",
+        "dir": os.path.join(ROOT, "elcorazon"),
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "ec.json",
+    },
+    "funhouse": {
+        "key": "funhouse",
+        "lat": 47.6189,
+        "lon": -122.3293,
+        "name": "Funhouse",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "South Lake Union",
+        "dir": os.path.join(ROOT, "funhouse"),
+        # Same site/calendar as elcorazon (they share the 109 E Eastlake
+        # building); venue field "The Funhouse".
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "ec.json",
+    },
+    "crocodile": {
+        "key": "crocodile",
+        "lat": 47.6146,
+        "lon": -122.3491,
+        "name": "The Crocodile",
+        "has_spotify_lookup": True,
+        "city": "Seattle, WA",
+        "metro": "Seattle",
+        "neighborhood": "Belltown",
+        "dir": os.path.join(ROOT, "crocodile"),
+        # Own Squarespace calendar is DEAD (placeholder events) — primary
+        # tickets live on TicketWeb venue page 10352 (see crocodile/).
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "ticketweb.json",
+    },
 }
 
 

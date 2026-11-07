@@ -34,7 +34,13 @@ sys.path.insert(0, os.path.dirname(HERE))  # repo root
 from common import apple_music
 from common import spotify_api
 
-VENUE_DIR = os.getcwd()  # run from the venue directory
+# --venue <key> via registry (see common/lookup.py for the 2026-11-07
+# root-cache contamination this prevents); bare CWD stays legacy-compatible.
+VENUE_DIR = os.getcwd()
+if "--venue" in sys.argv:
+    from common import venues as _v
+    _key = sys.argv[sys.argv.index("--venue") + 1]
+    VENUE_DIR = _v.get_venue(_key)["dir"]
 
 
 def main():

@@ -31,7 +31,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))  # repo root
 from common import apple_music
 
-VENUE_DIR = os.getcwd()  # run from the venue directory
+# --venue <key> resolves via the registry (safe from any CWD — a bare
+# CWD-based run from the repo root silently used the WRONG venue's
+# shows.json and wrote one shared root cache: Seattle-venue contamination,
+# 2026-11-07). Without --venue keep the legacy "run from the venue dir".
+VENUE_DIR = os.getcwd()
+if "--venue" in sys.argv:
+    from common import venues as _v
+    _key = sys.argv[sys.argv.index("--venue") + 1]
+    VENUE_DIR = _v.get_venue(_key)["dir"]
 
 
 def main():
