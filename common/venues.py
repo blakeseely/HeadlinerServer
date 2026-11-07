@@ -383,6 +383,25 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "roseland": {
+        "key": "roseland",
+        "name": "Roseland Theater",
+        "has_spotify_lookup": True,
+        "city": "Portland, OR",
+        "metro": "Portland",
+        "neighborhood": "Old Town / Chinatown",
+        "dir": os.path.join(ROOT, "roseland"),
+        # Same rhp-events plugin family as Wonder Ballroom but the template
+        # DRIFTED: wrapper class carries suffixes, eventDate has NO year
+        # (the month separators carry "November 2026" style year context),
+        # age lives in the notes box not eventAgeRestriction, doors line
+        # without comma. /events/page/2/ is a client-side mirror of page 1
+        # — the fetch walks pages until none are fresh. Receives moved
+        # shows from Wonder Ballroom (Frost Children). Spotify API lookup.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
     "wonderball": {
         "key": "wonderball",
         "name": "Wonder Ballroom",
