@@ -402,6 +402,26 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "polarishall": {
+        "key": "polarishall",
+        "name": "Polaris Hall",
+        "has_spotify_lookup": True,
+        "city": "Portland, OR",
+        "metro": "Portland",
+        "neighborhood": "St. Johns",
+        "dir": os.path.join(ROOT, "polarishall"),
+        # Mississippi Studios' little sister room (~300 cap) in a restored
+        # Masonic temple. One-page SSR site (custom CMS, not WordPress):
+        # the WHOLE calendar (~58 cards, horizon ~6 months) renders in a
+        # single GET inside #shows. Card dates carry NO YEAR — month-vs-
+        # today inference (chronological walk Nov->May asserts monotonic).
+        # etix CTA text is the status vocabulary (Get Tickets/Sold Out).
+        # Age limits exist only behind bot-walled etix product pages:
+        # age_rating is null by design.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
     "roseland": {
         "key": "roseland",
         "name": "Roseland Theater",
