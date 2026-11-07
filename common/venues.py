@@ -363,6 +363,26 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "shows.json",
     },
+    "holocene": {
+        "key": "holocene",
+        "name": "Holocene",
+        "has_spotify_lookup": True,
+        "city": "Portland, OR",
+        "metro": "Portland",
+        "neighborhood": "Buckman",
+        "dir": os.path.join(ROOT, "holocene"),
+        # Rebuilt venue site (holocene.org — the old holocenepdx.com is
+        # NXDOMAIN): SSR calendar /events in ONE GET (etix-backed rows, ISO
+        # date in the href) + per-show event pages that bill PRE-PARSED
+        # (ev-title/ev-sub/ev-with + Doors/Ages dl + schema.org MusicEvent
+        # JSON-LD with performer[], doorTime, eventStatus, offers). The
+        # JSON-LD doubles as the audit validator's independent source.
+        # DJ/rave nights are music (Club Darc rule); 'presented by' phrases
+        # in calendar titles must NOT go through parse_bill (detail h1 wins).
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
     "wonderball": {
         "key": "wonderball",
         "name": "Wonder Ballroom",
