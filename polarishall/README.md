@@ -1,7 +1,7 @@
 # Polaris Hall (Portland, OR)
 
  Mississippi Studios' little sister room (~300 cap), restored Masonic
- temple in St. Johns. Feed: `data/shows.json` (metro `Portland`, 57 rows).
+ temple in St. Johns. Feed: `data/shows.json` (metro `Portland`, 56 rows).
 
 ## Source — one page, whole calendar, zero JS needed
 
@@ -23,8 +23,10 @@ Shared grammar (parse_bill dash tails; "An Evening With" bypass) plus the
 wonderball colon-presenter rule ("Olivia O'Brien Presents: The PIXIE
 Tour" caught it as a true positive on day one). Multi-night runs bill as
 "(Night 1)/(Night 2)" suffixed rows (fillmore precedent). Real comedy
-nights exist here (teacher-standup nights, a comedy taping) — the tight
-title comedy regex classifies them.
+nights (teacher-standup nights, a comedy taping) — the tight
+title comedy regex classifies them. "MOVED TO ALADDIN THEATER: …" written
+into a title drops the row (wonderball precedent — it is no longer this
+venue's show; Aladdin is not a tracked feed).
 
 **age_rating is null by design**: the site carries no age data; limits
 live only on etix product pages, which answer 202/empty to non-browser

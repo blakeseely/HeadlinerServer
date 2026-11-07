@@ -34,6 +34,7 @@ SOURCE_URL = "https://polarishall.com/"
 
 _EVENING_RE = re.compile(r"(?i)^an?\s+(?:evening|night)\s+(?:with|at|with:)\b")
 _COLON_PRESENTER_RE = re.compile(r"^(.{2,45}?)\s+presen(?:ts|t)\s*[:&]\s*(?=\S)", re.I)
+_MOVED_RE = re.compile(r"(?i)^moved\s+to\s+(\S.*?)(?::|\s+-\s|\s*\()")
 COMEDY_RE = re.compile(
     r"comedy|comedian|stand.?up|one.?man show|roast|comedy special|"
     r"comedy tour|joke festival", re.I)
@@ -66,12 +67,19 @@ def main():
     lookup = apple_music.load_lookup_cache(LOOKUP_CACHE)
 
     shows, dropped_past = [], 0
+    moved = []
     for r in rows:
         raw = _clean(r.get("title"))
         if not raw:
             continue
         if r.get("date") and r["date"] < today:
             dropped_past += 1
+            continue
+        mm = _MOVED_RE.match(raw)
+        if mm:
+            # wonderball precedent: a moved-venue notice means the show is
+            # no longer this venue's (Aladdin is not a tracked feed)
+            moved.append(f"{r.get('date')}  moved to {mm.group(1)}  ({raw[:60]})")
             continue
 
         presenters = []
@@ -143,6 +151,10 @@ def main():
         print(f"needs_review: {len(review)}")
         for s in review[:6]:
             print("    ", s.get("date"), [a["name"] for a in s["headline_artists"]])
+    if moved:
+        print("DROPPED — billed as moved to another venue:")
+        for line in moved:
+            print("    ", line)
 
 
 if __name__ == "__main__":
