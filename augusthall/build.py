@@ -12,10 +12,14 @@ Title grammar seen in the wild (all live music):
   "Introducing The Aces with special guest Gatlin"       (name + support)
   "Lil Pete: Real Is Back Tour"                          (name: tour)
   "NICE AS F*#K – BACK AS F**K NICE AS EVER"             (censored name: tour)
+  "Son Volt, with support by Kelly Willis"               (name + support)
+  "Eivør, with support by midori jaeger"                 (name + support, lowercase)
+  "Pinhead Gunpowder with Support by Constant Insult and False Flag"
   "The Pre-Show Speakeasy with Hazlett"                  (pre-show event)
 
 Mapping:  "name: tour" / "name – tour" split on the colon / en-dash where the
-left side reads as an act; "with / with special guest" -> support; "Introducing
+left side reads as an act; "with" / "with special guest" / "with support by"
+-> support (the venue's casing of "with support by" is arbitrary); "Introducing
 X" -> X. Censored names (asterisk runs) that don't match the catalog are
 flagged for review rather than guessed at.
 """
@@ -110,11 +114,14 @@ def split_title(title):
     # "Introducing The Aces with special guest Gatlin"
     t = strip_prefix(t, "Introducing")
 
-    # support: "with special guest X" / "with X" (only once, at end)
-    m = re.search(r"\s+with(?:\s+special\s+guest)?\s+(?=[A-Z])", t)
+    # support: "with special guest X" / "with support by X" / "with X"
+    # (only once, at end); support names may be lowercase ("midori jaeger")
+    m = re.search(
+        r"\s+with(?:\s+(?:special\s+guest|support\s+by))?\s+(?=[A-Za-z])",
+        t, re.I)
     if m:
         head, sup = t[:m.start()].strip(), t[m.end():].strip()
-        if 2 <= len(sup) <= 40 and sup not in ("and", "the"):
+        if 2 <= len(sup) <= 80 and sup.lower() not in ("and", "the"):
             support = [clean(sup)] if clean(sup) else []
             t = head
 
