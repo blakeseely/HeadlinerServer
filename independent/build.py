@@ -432,6 +432,9 @@ def main():
         shows.append(rec)
 
     spotify.merge_shows(shows, spotify.from_captures(events, url_key="href"))
+    # API backfill: artists with no venue-published link get a Spotify
+    # Web API lookup (merge_lookup skips artists that already carry one).
+    common_build.apply_spotify_lookup(shows, os.path.join(HERE, "cache", "spotify_lookup.json"))
     stats = {"apple_music": apple_music.apple_music_stats(shows),
              "spotify": spotify.stats(shows)}
     common_build.run_build(VENUE, VENUE_ID, SRC_URL, SRC_URL, shows, stats)

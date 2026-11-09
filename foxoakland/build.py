@@ -203,6 +203,9 @@ def main():
         ))
 
     spotify.merge_shows(shows, spotify.from_captures(details))
+    # API backfill: artists with no venue-published link get a Spotify
+    # Web API lookup (merge_lookup skips artists that already carry one).
+    build.apply_spotify_lookup(shows, os.path.join(HERE, "cache", "spotify_lookup.json"))
     stats = {
         "event_types": {
             "music": sum(1 for s in shows if s["event_type"] == "music"),

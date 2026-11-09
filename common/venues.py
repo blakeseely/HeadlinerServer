@@ -42,7 +42,9 @@ VENUES = {
         "lat": 37.7719,  # 628 Haight St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.433,
         "name": "The Independent",
-        "has_spotify_lookup": False,
+        # Venue-publishing venue: scraped links win; the API fills the gap
+        # (2026-11-08 Spotify coverage parity)
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Mission District",
@@ -56,7 +58,9 @@ VENUES = {
         "lat": 37.762,  # 429 Castro St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4348,
         "name": "The Castro Theatre",
-        "has_spotify_lookup": False,
+        # Venue-publishing venue: scraped links win; the API fills the gap
+        # (2026-11-08 Spotify coverage parity)
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Castro",
@@ -142,7 +146,9 @@ VENUES = {
         "lat": 37.7667,  # 2170 Market St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4305,
         "name": "Cafe du Nord",
-        "has_spotify_lookup": False,
+        # Venue-publishing venue: scraped links win; the API fills the gap
+        # (2026-11-08 Spotify coverage parity)
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Presidio Heights",
@@ -156,7 +162,9 @@ VENUES = {
         "lat": 37.808,  # 1807 Telegraph Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.2702,
         "name": "Fox Theater (Oakland)",
-        "has_spotify_lookup": False,
+        # Venue-publishing venue: scraped links win; the API fills the gap
+        # (2026-11-08 Spotify coverage parity)
+        "has_spotify_lookup": True,
         "city": "Oakland, CA",
         "metro": SF_Metro,
         "neighborhood": "West Oakland",
@@ -170,7 +178,9 @@ VENUES = {
         "lat": 37.8737,  # 2001 Gayley Rd — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.2542,
         "name": "Greek Theatre",
-        "has_spotify_lookup": False,
+        # Venue-publishing venue: scraped links win; the API fills the gap
+        # (2026-11-08 Spotify coverage parity)
+        "has_spotify_lookup": True,
         "city": "Berkeley, CA",
         "metro": SF_Metro,
         "neighborhood": None,
@@ -184,7 +194,9 @@ VENUES = {
         "lat": 37.7697,  # 1710 Mission St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4203,
         "name": "Brick & Mortar Music Hall",
-        "has_spotify_lookup": False,
+        # Venue-publishing venue: scraped links win; the API fills the gap
+        # (2026-11-08 Spotify coverage parity)
+        "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
         "neighborhood": "Mission District",
