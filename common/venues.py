@@ -257,6 +257,27 @@ VENUES = {
         "fetch_cmd": "python3 fetch.py",
         "cache": "events.json",
     },
+    "sfjazz": {
+        "key": "sfjazz",
+        "lat": 37.7764,  # 201 Franklin St — geocoded once 2026-11-09 (Nominatim arts_centre POI + Photon both 37.7763779,-122.4215694)
+        "lon": -122.4216,
+        "name": "SFJAZZ Center",
+        "has_spotify_lookup": True,
+        "city": "San Francisco, CA",
+        "metro": SF_Metro,
+        "neighborhood": "Hayes Valley",
+        "dir": os.path.join(ROOT, "sfjazz"),
+        # Jazz-only season venue (700-seat Miner Auditorium + 100-seat Joe
+        # Henderson Lab). The official site (sfjazz.org) is site-wide
+        # Cloudflare-walled (curl + real browser + WP REST all 403), so it is
+        # NOT a recurring source — the feed comes from sfshows.app (a
+        # curl-able, server-rendered third-party calendar of the 2026-27
+        # season). Cards carry billed artist + ISO date + time + the official
+        # /tickets deep link; room/age/price/support/bios are honestly null.
+        "has_apple_music": True,
+        "fetch_cmd": "python3 fetch.py",
+        "cache": "shows.json",
+    },
     "rickshawstop": {
         "key": "rickshawstop",
         "lat": 37.776,  # 155 Fell St — geocoded once 2026-11-07 (OSM/Wikidata-verified)

@@ -50,6 +50,8 @@ VENUES = {
                     "venue_dir": os.path.join(ROOT, "chapel")},
     "bgc":         {"name": "Bill Graham Civic Auditorium", "city": "San Francisco, CA",
                     "venue_dir": os.path.join(ROOT, "bgc")},
+    "sfjazz":      {"name": "SFJAZZ Center", "city": "San Francisco, CA",
+                    "venue_dir": os.path.join(ROOT, "sfjazz")},
     "rickshawstop": {"name": "Rickshaw Stop", "city": "San Francisco, CA",
                      "venue_dir": os.path.join(ROOT, "rickshawstop")},
     "bellyup":     {"name": "Belly Up", "city": "Solana Beach, CA",
