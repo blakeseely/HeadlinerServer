@@ -1,0 +1,240 @@
+{
+  "augusthall": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "bellyup": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "bgc": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "brickandmortar": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "cafedunord": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "castro": {
+    "approved": true,
+    "auto": false,
+    "category": "The Castro Theatre (Wikimedia category)",
+    "file": "File:Castro Theatre in San Francisco (TK2).JPG",
+    "note": "3840x5760 CC BY-SA 3.0, same TK-series as the previously verified TK1 shot",
+    "source": "report-pick"
+  },
+  "chapel": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "crocodile": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "crystalball": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "elcorazon": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "fillmore": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "foxoakland": {
+    "approved": true,
+    "auto": true,
+    "category": null,
+    "file": "File:Fox Oakland-4.jpg",
+    "note": "5616x3744 CC BY-SA 3.0",
+    "source": "geotag"
+  },
+  "frost": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "funhouse": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "gamh": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "greek": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "holocene": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "humphreys": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "independent": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "keller": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "moore": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "musicbox": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "neptune": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "neumos": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "pappy": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "paramount": {
+    "approved": true,
+    "auto": true,
+    "category": null,
+    "file": "File:Seattle (WA, USA), Paramount Theatre -- 2022 -- 1472.jpg",
+    "note": "6720x4480 CC BY-SA 4.0",
+    "source": "category"
+  },
+  "polarishall": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "regency": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "rickshawstop": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "roseland": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "sfjazz": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "showbox": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "showboxsodo": {
+    "approved": true,
+    "auto": true,
+    "category": "Showbox SoDo",
+    "file": "File:Showbox Sodo 01.jpg",
+    "note": "4288x2848 CC BY-SA 3.0",
+    "source": "category"
+  },
+  "thecasbah": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "theobservatory": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "thesound": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  },
+  "warfield": {
+    "approved": true,
+    "auto": true,
+    "category": "Warfield Theatre",
+    "file": "File:San Francisco Warfield.jpg",
+    "note": "2448x3264 CC BY 3.0 (rescanned; verify at apply)",
+    "source": "category"
+  },
+  "wonderball": {
+    "approved": false,
+    "auto": false,
+    "file": null,
+    "note": "no strong auto candidate \u2014 pick from the report"
+  }
+}

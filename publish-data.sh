@@ -74,7 +74,7 @@ fi
 # --- stage the venue JSON + manifest (stays here, no cd) ---
 export ROOT
 python3 - <<'PY'
-import os, json, hashlib, datetime, sys
+import os, json, hashlib, datetime, sys, shutil
 root = os.environ["ROOT"]
 data = os.path.join(root, "data-repo")
 # Venue registry: the single source for the once-geocoded lat/lon pair each
@@ -99,6 +99,19 @@ for venue in sorted(os.listdir(root)):
     os.makedirs(dst_dir, exist_ok=True)
     raw = open(src).read()
     open(os.path.join(dst_dir, "shows.json"), "w").write(raw)
+    # venue photo: <venue_id>.jpg in the venue folder (placed via
+    # common/venue_images.py) — copied only when it exists and is current
+    img = os.path.join(root, venue, venue + ".jpg")
+    dst_img = os.path.join(dst_dir, venue + ".jpg")
+    if os.path.isfile(img):
+        if not (os.path.isfile(dst_img)
+                and os.path.getmtime(dst_img) >= os.path.getmtime(img)):
+            shutil.copyfile(img, dst_img)
+        src_credit = os.path.join(root, venue, "CREDITS.json")
+        if os.path.isfile(src_credit):
+            shutil.copyfile(src_credit, os.path.join(dst_dir, "CREDITS.json"))
+    elif os.path.isfile(dst_img):
+        os.remove(dst_img)  # image retired from the registry side
     shows = updated = city = metro = None
     fetched_at = None
     domains = {"event_type": [], "ticket_status": []}

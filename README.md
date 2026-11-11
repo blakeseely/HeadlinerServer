@@ -215,3 +215,39 @@ Two safety rules guard the "get most" goal from becoming "get wrong":
   silently presented as a full match.
 
 Both rules live in exactly one place and apply to every venue that matches.
+
+## Venue images
+
+Each venue may carry one representative building photo as `<venue_id>.jpg`
+(>= 750 px on both sides, any aspect ratio) in its folder. `publish-data.sh`
+copies the jpg + its `CREDITS.json` attribution sidecar into the data repo,
+where the nightly push ships them to HeadlinerListings. No manifest/schema
+change: the images are plain files beside `shows.json`.
+
+The whole workflow lives in `common/venue_images.py` (Pillow from
+`.venv-images/`):
+
+```
+.venv-images/bin/python common/venue_images.py find   # proposals + report
+.venv-images/bin/python common/venue_images.py apply  # save approved images
+.venv-images/bin/python common/venue_images.py audit  # verify stored jpgs
+```
+
+- **Source of truth: Wikimedia Commons only.** The feed repo is public and
+  the app displays these, so every image must be free-licensed; venue-site
+  and blog photos are never scraped. `apply` re-verifies the license at
+  download time and records author + license in `CREDITS.json` next to the
+  jpg (CC-BY-SA requires attribution wherever the image is displayed).
+- **Identity before aesthetics.** Auto-propose fires only on venue-certain
+  candidates — files under a Commons category that names the venue, or
+  geotagged within ~300 m of the building AND file-named for it. Namesake
+  traps ("David Warfield", "Belly Up" Chicago, Fillmore Street) are the
+  reason bare filename matches never auto-pass. Concert/stage shots are
+  fine candidates — the *venue's identity* must be certain; the subject may
+  be the room mid-show. Everything else lands in
+  `common/venue_images_report.md` for a human pick: set `file` (and
+  `approved`) in `common/venue_images.json`, then run `apply`.
+- **No qualifying image => no image.** A venue with nothing >= 750 px saves
+  nothing and stays on the report list — never an upscale, never a
+  smaller-file compromise.
+

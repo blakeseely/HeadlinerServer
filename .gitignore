@@ -12,3 +12,4 @@ data-repo/
 .env
 
 .DS_Store
+.venv-images/
