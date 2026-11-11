@@ -1,17 +1,17 @@
 {
   "augusthall": {
-    "approved": false,
+    "approved": true,
     "artist": "Chris Tuite (venue-credited)",
     "auto": false,
-    "file": "web:https://www.augusthallsf.com/wp-content/uploads/2021/12/Chris-Tuite_Finneas_AugustHall.jpg",
-    "image_url": "https://www.augusthallsf.com/wp-content/uploads/2021/12/Chris-Tuite_Finneas_AugustHall.jpg",
+    "file": "web:https://www.augusthallsf.com/wp-content/uploads/2021/12/Chris-Tuite_Finneas_AugustHall-76101519-scaled.jpg",
+    "image_url": "https://www.augusthallsf.com/wp-content/uploads/2021/12/Chris-Tuite_Finneas_AugustHall-76101519-scaled.jpg",
     "license": "venue's official website, used for venue identification",
     "note": "2560x1708 jpeg, venue's own site (show photo)",
     "page_url": "https://www.augusthallsf.com/",
     "source": "web"
   },
   "bellyup": {
-    "approved": false,
+    "approved": true,
     "artist": "unknown (Restaurant Guru)",
     "auto": false,
     "file": "web:https://img.restaurantguru.com/r0ab-Belly-Up-Tavern-facade-2022-10.jpg",
@@ -28,7 +28,7 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "brickandmortar": {
-    "approved": false,
+    "approved": true,
     "artist": "venue (photographer uncredited)",
     "auto": false,
     "file": "web:https://www.brickandmortarmusic.com/wp-content/uploads/DSC_6999-Enhanced-NR-scaled-0x0.jpg",
@@ -70,14 +70,14 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "elcorazon": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "Seattle Times staff",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "2040x1340 \u2014 RESOLVE URL AT APPLY (image_url truncated in report)",
-    "page_url": "https://regalbuzz.com/seattle/el-corazon-seattle/",
+    "file": "web:https://images.seattletimes.com/wp-content/uploads/2019/05/05032019_elcorazon_162551.jpg?d=2040x1340",
+    "image_url": "https://images.seattletimes.com/wp-content/uploads/2019/05/05032019_elcorazon_162551.jpg?d=2040x1340",
+    "license": "news-media web image, used for venue identification",
+    "note": "2040x1340 webp, Seattle Times",
+    "page_url": "https://www.seattletimes.com/entertainment/music/el-corazon-site-of-first-pearl-jam-show-may-be-demolished/",
     "source": "web"
   },
   "fillmore": {
@@ -95,24 +95,24 @@
     "source": "geotag"
   },
   "frost": {
-    "approved": false,
+    "approved": true,
     "artist": "CAW Architects",
     "auto": false,
-    "file": "web:https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Engineering.jpg",
-    "image_url": "https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Engineering.jpg",
+    "file": "web:https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Exterior-Daytime-Stage-Crowd-CAW-Architects-3a.jpg",
+    "image_url": "https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Exterior-Daytime-Stage-Crowd-CAW-Architects-3a.jpg",
     "license": "project architect's website, used for venue identification",
     "note": "1750x1184 jpeg; the amphitheater per its renovation architect (CAW)",
     "page_url": "https://cawarchitects.com/projects/higher-education/frost-amphitheater/",
     "source": "web"
   },
   "funhouse": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (WeGow venue page)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "1200x800 \u2014 RESOLVE URL AT APPLY",
+    "file": "web:https://cdn.wegow.com/media/venues/funhouse/funhouse-1565343801.77.jpg",
+    "image_url": "https://cdn.wegow.com/media/venues/funhouse/funhouse-1565343801.77.jpg",
+    "license": "ticketing-aggregator web image, used for venue identification",
+    "note": "1200x800 jpeg, WeGow venue CDN",
     "page_url": "https://www.wegow.com/es/conciertos/fallujah-concert-in-seattle-funhouse-3",
     "source": "web"
   },
@@ -129,36 +129,36 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "holocene": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "Kyle Carnes (venue photographer)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "1500x998 webp venue photography \u2014 RESOLVE URL AT APPLY",
+    "file": "web:https://images.squarespace-cdn.com/content/v1/59f76b03f43b55cca9f1bd1b/1510534966803-P41W75DUWM7KLRMNUFEB/holocene-2.jpg",
+    "image_url": "https://images.squarespace-cdn.com/content/v1/59f76b03f43b55cca9f1bd1b/1510534966803-P41W75DUWM7KLRMNUFEB/holocene-2.jpg",
+    "license": "venue-photographer site image, used for venue identification",
+    "note": "2500x3746 webp, venue photography (portrait)",
     "page_url": "https://kylecarnesphotography.com/holocene/",
     "source": "web"
   },
   "humphreys": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (www.sandiegouniontribune.com)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "2000x1333 webp, SDUT \u2014 RESOLVE URL AT APPLY",
-    "page_url": "https://www.sandiegouniontribune.com/2026-03-08/humphreys-concerts-by-the-bay-a-quintessential-",
+    "file": "web:https://www.sandiegouniontribune.com/wp-content/uploads/2026/03/sut-l-music-costello-review-016.jpg?w=1569",
+    "image_url": "https://www.sandiegouniontribune.com/wp-content/uploads/2026/03/sut-l-music-costello-review-016.jpg?w=1569",
+    "license": "web image (www.sandiegouniontribune.com), used for venue identification",
+    "note": "1569x1045 webp, 2000x1333 webp, SDUT",
+    "page_url": "https://www.sandiegouniontribune.com/2026/03/08/humphreys-concerts-by-the-bay-a-quintessential-san-diego-venue-turns-45/",
     "source": "web"
   },
   "independent": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (venue site)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "3000x1687 jpeg \u2014 RESOLVE URL AT APPLY",
-    "page_url": "https://thevendry.com/venue/23794/the-independent-san-francisco-ca",
+    "file": "web:https://images.squarespace-cdn.com/content/v1/62412e669e45ef6f3383b2f6/5b85dce0-4b37-4782-9fca-f98b5787a0eb/The-Independent-San-Francisco-Venue-Exterior-IYoung.jpg",
+    "image_url": "https://images.squarespace-cdn.com/content/v1/62412e669e45ef6f3383b2f6/5b85dce0-4b37-4782-9fca-f98b5787a0eb/The-Independent-San-Francisco-Venue-Exterior-IYoung.jpg",
+    "license": "venue's official website, used for venue identification",
+    "note": "1500x1000 webp, venue's own site exterior",
+    "page_url": "https://independentsf.com/",
     "source": "web"
   },
   "keller": {
@@ -174,14 +174,14 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "musicbox": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (venue gallery)",
     "auto": false,
-    "file": "web:https://musicboxsd.com/",
-    "image_url": "https://musicboxsd.com/",
-    "license": null,
-    "note": "1500x846 jpeg venue header \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
-    "page_url": "https://musicboxsd.com/",
+    "file": "web:https://musicboxsd.com/wp-content/uploads/2021/09/music-box-san-diego-venue-hero-shot.jpg",
+    "image_url": "https://musicboxsd.com/wp-content/uploads/2021/09/music-box-san-diego-venue-hero-shot.jpg",
+    "license": "venue's official website, used for venue identification",
+    "note": "1500x846 jpeg, venue's own site hero shot",
+    "page_url": "https://musicboxsd.com/galleries/venue/",
     "source": "web"
   },
   "neptune": {
@@ -197,14 +197,14 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "pappy": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (Palm Springs Life)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "1600x900 webp \u2014 RESOLVE URL AT APPLY",
-    "page_url": "https://desertoasisinsider.shop/blogs/history/pappy-harriets-pioneertown-music-history",
+    "file": "web:https://www.palmspringslife.com/wp-content/uploads/2024/04/BEJ2AF-cc.jpg",
+    "image_url": "https://www.palmspringslife.com/wp-content/uploads/2024/04/BEJ2AF-cc.jpg",
+    "license": "travel-publication web image, used for venue identification",
+    "note": "1280x850 jpeg, genuine facade photo (replaces AI illustration)",
+    "page_url": "https://www.palmspringslife.com/the-guide/things-to-do/the-history-of-pappy-harriets-pioneertown-palace/",
     "source": "web"
   },
   "paramount": {
@@ -216,14 +216,14 @@
     "source": "category"
   },
   "polarishall": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (polarishall.com)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "3000x2000 jpeg venue site \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
-    "page_url": "https://polarishall.com/",
+    "file": "web:https://assets.polarishall.com/site-images/_safe/DSC02401-resized.jpg",
+    "image_url": "https://assets.polarishall.com/site-images/_safe/DSC02401-resized.jpg",
+    "license": "web image (polarishall.com), used for venue identification",
+    "note": "2400x1601 jpeg, 3000x2000 jpeg venue site",
+    "page_url": "https://polarishall.com/gallery",
     "source": "web"
   },
   "regency": {
@@ -245,14 +245,14 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "sfjazz": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "Mark Cavagnero Associates (building architect)",
     "auto": false,
-    "file": "web:https://www.sfjazz.org/visit/sfjazz-center/",
-    "image_url": "https://www.sfjazz.org/visit/sfjazz-center/",
-    "license": null,
-    "note": "1920x1080 jpeg venue site \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
-    "page_url": "https://www.sfjazz.org/visit/sfjazz-center/",
+    "file": "web:https://www.cavagnero.com/wp-content/uploads/2017/06/Mark-Cavagnero-SFJAZZ-Center-Exterior-Facade-Perspective-1.jpg",
+    "image_url": "https://www.cavagnero.com/wp-content/uploads/2017/06/Mark-Cavagnero-SFJAZZ-Center-Exterior-Facade-Perspective-1.jpg",
+    "license": "project architect's website, used for venue identification",
+    "note": "1920x1080 jpeg, the center per its building architect",
+    "page_url": "https://www.cavagnero.com/project/sfjazz-center/",
     "source": "web"
   },
   "showbox": {
@@ -276,24 +276,24 @@
     "note": "no strong auto candidate \u2014 pick from the report"
   },
   "theobservatory": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (specialevents.livenation.com)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "2182x1500 jpeg Live Nation venue page \u2014 RESOLVE URL AT APPLY",
+    "file": "web:https://mavenprodcontent.blob.core.windows.net/media/LNSpecialEvents/Venues/Observatory%20SD/Venue%20Space%20Overview/Exterior2Web.jpg",
+    "image_url": "https://mavenprodcontent.blob.core.windows.net/media/LNSpecialEvents/Venues/Observatory%20SD/Venue%20Space%20Overview/Exterior2Web.jpg",
+    "license": "web image (specialevents.livenation.com), used for venue identification",
+    "note": "2182x1500 jpeg, 2182x1500 jpeg Live Nation venue page",
     "page_url": "https://specialevents.livenation.com/venues/observatory-north-park",
     "source": "web"
   },
   "thesound": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (thesoundsd.com)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "1600x1067 webp venue site \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
+    "file": "web:https://thesoundsd.com/wp-content/images/orchestra.jpg",
+    "image_url": "https://thesoundsd.com/wp-content/images/orchestra.jpg",
+    "license": "web image (thesoundsd.com), used for venue identification",
+    "note": "1600x1067 webp, 1600x1067 webp venue site",
     "page_url": "https://thesoundsd.com/",
     "source": "web"
   },
@@ -306,13 +306,13 @@
     "source": "category"
   },
   "wonderball": {
-    "approved": false,
-    "artist": null,
+    "approved": true,
+    "artist": "uncredited (GiTtown listing)",
     "auto": false,
-    "file": "web:<needs-url>",
-    "image_url": null,
-    "license": null,
-    "note": "1125x879 webp \u2014 RESOLVE URL AT APPLY",
+    "file": "web:https://files.gigtown.com/tfss-ee617ebb-a9b0-4474-b440-3ca3df6a233a-1125x879.jpg",
+    "image_url": "https://files.gigtown.com/tfss-ee617ebb-a9b0-4474-b440-3ca3df6a233a-1125x879.jpg",
+    "license": "UGC-listing CDN image, used for venue identification",
+    "note": "1125x879 jpeg, gigtown CDN",
     "page_url": "https://niewmedia.com/en/series/mayaongaku/07_edknz_wrmys/",
     "source": "web"
   }
