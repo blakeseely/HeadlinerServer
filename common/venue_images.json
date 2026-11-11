@@ -117,10 +117,15 @@
     "source": "web"
   },
   "gamh": {
-    "approved": false,
+    "approved": true,
+    "artist": "uncredited (venue press photo)",
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://s.hdnux.com/photos/01/55/02/62/28585150/3/rawImage.jpg",
+    "image_url": "https://s.hdnux.com/photos/01/55/02/62/28585150/3/rawImage.jpg",
+    "license": "venue press photo, used for venue identification",
+    "note": "2048x1366 jpeg, press photo found via 'press photo' query (user-found)",
+    "page_url": "user-supplied search result (hdnux = House of Blues/Live Nation press CDN)",
+    "source": "web"
   },
   "greek": {
     "approved": false,

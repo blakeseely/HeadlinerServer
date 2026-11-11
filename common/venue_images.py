@@ -616,7 +616,24 @@ def candidates_for(venue_id, meta, query=None, limit=8, counts=None,
         # image to confirm TRUE native dimensions (search engines' reported
         # sizes are often thumbnails) and a decodable image.
         if web_recs is not None:
-            for r in _kagi_images(f'"{name}" {city} photo'):
+            # "press photo" surfaces official press-kit imagery (venue press
+            # CDNs, ticketing hi-res photos) that the generic query misses —
+            # it is how Great American Music Hall's 2048px interior was found.
+            seen_urls = set()
+            web_queries = [f'"{name}" {city} photo',
+                           f'"{name}" {city} press photo']
+            for wq in web_queries:
+                for r in _kagi_images(wq):
+                    u = r["image_url"]
+                    if u in seen_urls:
+                        continue
+                    seen_urls.add(u)
+                    if u.lower().split("?")[0].endswith((".svg", ".gif")):
+                        continue
+                    key = "web:" + u
+                    if key not in rank:
+                        rank[key] = 4
+                        web_recs[key] = r
                 u = r["image_url"]
                 if u.lower().split("?")[0].endswith((".svg", ".gif")):
                     continue
