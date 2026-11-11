@@ -506,10 +506,12 @@ def _geo_close(info, meta):
 
 
 def candidates_for(venue_id, meta, query=None, limit=8, counts=None,
-                   web_recs=None):
+                   web_recs=None, web_only=False):
     """Ranked candidate File: titles with imageinfo for one venue.
     `counts` (optional dict) receives how many raw hits each source rank got;
-    `web_recs` (optional dict) collects the web candidates by pseudo-title."""
+    `web_recs` (optional dict) collects the web candidates by pseudo-title;
+    `web_only` skips the slow Commons sources (venues Commons already
+    whiffed on — the news is in the web search)."""
     name = meta["name"]
     city = (meta.get("city") or "").split(",")[0]
     # Category probes carry a locality qualifier so the homonym categories
@@ -578,13 +580,20 @@ def candidates_for(venue_id, meta, query=None, limit=8, counts=None,
     # Sources run concurrently; the shared _api limiter keeps it polite.
     probes = [name, f"{name} ({city})", f"{name} ({city.split(' ')[0]})",
               f"{name} (venue)", f"{name} (theatre)", f"{name} (music venue)"]
+    if web_only:
+        probes = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-        probe_f = {c: pool.submit(_category_exists_cached, c) for c in probes}
-        geo_f = pool.submit(_nearby_images, meta.get("lat"), meta.get("lon"))
-        img_f = pool.submit(_search_images, combined)
-        txt_f = pool.submit(_search_files, combined_short)
+        if web_only:
+            probe_f, geo_f, img_f, txt_f = {}, None, None, None
+        else:
+            probe_f = {c: pool.submit(_category_exists_cached, c)
+                       for c in probes}
+            geo_f = pool.submit(_nearby_images, meta.get("lat"), meta.get("lon"))
+            img_f = pool.submit(_search_images, combined)
+            txt_f = pool.submit(_search_files, combined_short)
 
-        cat = next((c for c in probes if probe_f[c].result()), None)
+        cat = (next((c for c in probes if probe_f[c].result()), None)
+               if not web_only else None)
         cats = []
         if cat:
             strong_cat = _strong_category(name, cat, geo_tokens, locality)
@@ -605,11 +614,12 @@ def candidates_for(venue_id, meta, query=None, limit=8, counts=None,
             for c in STRONG_FALLBACK[venue_id]:
                 if _category_exists_cached(c):
                     add_files(_category_members(c, limit=30), 0)
-        add(geo_f.result(), 2)
-        # The searches dominate runtime (~1 min each) and exist for the human
-        # review report; the strong sources above already drive auto-proposal.
-        add_files(img_f.result(), 3)
-        add_files(txt_f.result(), 3)
+        if not web_only:
+            add(geo_f.result(), 2)
+            # The searches dominate runtime (~1 min each) and exist for the
+            # human review report; strong sources drive auto-proposal.
+            add_files(img_f.result(), 3)
+            add_files(txt_f.result(), 3)
         # 4. Web image search (Kagi, if configured): fills venues Commons
         # cannot. Keyed by pseudo-title "web:<url>"; the real record lives in
         # web_recs and gets probed by _probe_web_image, which downloads the
@@ -739,7 +749,8 @@ def cmd_find(args):
         try:
             web_recs = {}
             rows = candidates_for(vid, meta, query=args.query,
-                                  counts=raw_counts, web_recs=web_recs)
+                                  counts=raw_counts, web_recs=web_recs,
+                                  web_only=getattr(args, "web_only", False))
         except Exception as e:  # one venue's API hiccup must not lose the run
             rows = []
             print(f"  {vid}: search failed — {e}")
@@ -993,6 +1004,8 @@ def main():
     f = sub.add_parser("find", help="write candidate proposals + report")
     f.add_argument("--query", help="override search query (single-venue debugging)")
     f.add_argument("--only", help="comma-separated venue ids to (re)search")
+    f.add_argument("--web-only", action="store_true",
+                   help="skip the slow Commons sources, run Kagi web search only")
     sub.add_parser("apply", help="verify + save approved images")
     sub.add_parser("audit", help="check stored images meet the rules")
     args = ap.parse_args()

@@ -357,7 +357,7 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
 
     Uniform top-level contract (same keys in every file, every release):
       venue, venue_id, venue_url, source_url, city, metro, neighborhood,
-      schema, field_hints, scraped_at, count, shows, stats
+      address, schema, field_hints, scraped_at, count, shows, stats
     `stats` is always exactly {event_types, apple_music, spotify} and is
     RECOMPUTED from the file's actual (post-filter) shows — the adapter's
     passed-in values are ignored — so stats always match what clients read.
@@ -407,7 +407,12 @@ def run_build(venue, venue_id, venue_url, source_url, shows, stats):
         "city": g.get("city"),
         "metro": g.get("metro"),
         "neighborhood": g.get("neighborhood"),
-        "schema": 6,  # incremented on any schema change; clients gate on it
+        "address": g.get("address"),
+        "schema": 7,  # incremented on any schema change; clients gate on it
+                      # 7 (2026-11-11) — added `address` (top-level, from
+                      # registry): the venue's street address, confirmed
+                      # once when the venue was added. Feed files are now
+                      # 14 keys (was 13).
                       # 6 (2026-11-05) — multi_artist derived centrally:
                       # (headline+support billed count >= 2) OR an explicit
                       # venue flag. Values only gained True vs venue-local

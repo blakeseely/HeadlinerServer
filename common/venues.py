@@ -41,6 +41,7 @@ VENUES = {
         "key": "independent",
         "lat": 37.7719,  # 628 Haight St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.433,
+        "address": "628 Haight St",
         "name": "The Independent",
         # Venue-publishing venue: scraped links win; the API fills the gap
         # (2026-11-08 Spotify coverage parity)
@@ -57,6 +58,7 @@ VENUES = {
         "key": "castro",
         "lat": 37.762,  # 429 Castro St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4348,
+        "address": "429 Castro St",
         "name": "The Castro Theatre",
         # Venue-publishing venue: scraped links win; the API fills the gap
         # (2026-11-08 Spotify coverage parity)
@@ -75,6 +77,7 @@ VENUES = {
         "key": "fillmore",
         "lat": 37.7841,  # 1805 Geary Blvd — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4332,
+        "address": "1805 Geary Blvd",
         "name": "The Fillmore",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -89,6 +92,7 @@ VENUES = {
         "key": "gamh",
         "lat": 37.7848,  # 859 O'Farrell St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4188,
+        "address": "859 O'Farrell St",
         "name": "Great American Music Hall",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -103,6 +107,7 @@ VENUES = {
         "key": "regency",
         "lat": 37.7878,  # 1300 Van Ness Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4216,
+        "address": "1300 Van Ness Ave",
         "name": "The Regency Ballroom",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -117,6 +122,7 @@ VENUES = {
         "key": "augusthall",
         "lat": 37.7876,  # 420 Mason St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4098,
+        "address": "420 Mason St",
         "name": "August Hall",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -131,6 +137,7 @@ VENUES = {
         "key": "warfield",
         "lat": 37.7826,  # 982 Market St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4103,
+        "address": "982 Market St",
         "name": "The Warfield Theatre",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -145,13 +152,14 @@ VENUES = {
         "key": "cafedunord",
         "lat": 37.7667,  # 2170 Market St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4305,
+        "address": "2170 Market St",
         "name": "Cafe du Nord",
         # Venue-publishing venue: scraped links win; the API fills the gap
         # (2026-11-08 Spotify coverage parity)
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
         "metro": SF_Metro,
-        "neighborhood": "Presidio Heights",
+        "neighborhood": "Castro",
         "dir": os.path.join(ROOT, "cafedunord"),
         "has_apple_music": True,
         "fetch_cmd": "python3 fetch.py",
@@ -161,6 +169,7 @@ VENUES = {
         "key": "foxoakland",
         "lat": 37.808,  # 1807 Telegraph Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.2702,
+        "address": "1807 Telegraph Ave",
         "name": "Fox Theater (Oakland)",
         # Venue-publishing venue: scraped links win; the API fills the gap
         # (2026-11-08 Spotify coverage parity)
@@ -177,6 +186,7 @@ VENUES = {
         "key": "greek",
         "lat": 37.8737,  # 2001 Gayley Rd — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.2542,
+        "address": "2001 Gayley Rd",
         "name": "Greek Theatre",
         # Venue-publishing venue: scraped links win; the API fills the gap
         # (2026-11-08 Spotify coverage parity)
@@ -193,6 +203,7 @@ VENUES = {
         "key": "brickandmortar",
         "lat": 37.7697,  # 1710 Mission St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4203,
+        "address": "1710 Mission St",
         "name": "Brick & Mortar Music Hall",
         # Venue-publishing venue: scraped links win; the API fills the gap
         # (2026-11-08 Spotify coverage parity)
@@ -209,6 +220,7 @@ VENUES = {
         "key": "frost",
         "lat": 37.4307,  # Stanford, Lasuen Way — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.166,
+        "address": "Lasuen Way, Stanford",
         "name": "Frost Amphitheater",
         "has_spotify_lookup": True,
         "city": "Palo Alto, CA",
@@ -223,6 +235,7 @@ VENUES = {
         "key": "chapel",
         "lat": 37.7605,  # 1854 Market St (777 Valencia side) — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4212,
+        "address": "1854 Market St",
         "name": "The Chapel",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -241,6 +254,7 @@ VENUES = {
         "key": "bgc",
         "lat": 37.7781,  # 99 Grove St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4173,
+        "address": "99 Grove St",
         "name": "Bill Graham Civic Auditorium",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -261,6 +275,7 @@ VENUES = {
         "key": "sfjazz",
         "lat": 37.7764,  # 201 Franklin St — geocoded once 2026-11-09 (Nominatim arts_centre POI + Photon both 37.7763779,-122.4215694)
         "lon": -122.4216,
+        "address": "201 Franklin St",
         "name": "SFJAZZ Center",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -282,6 +297,7 @@ VENUES = {
         "key": "rickshawstop",
         "lat": 37.776,  # 155 Fell St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.4205,
+        "address": "155 Fell St",
         "name": "Rickshaw Stop",
         "has_spotify_lookup": True,
         "city": "San Francisco, CA",
@@ -310,6 +326,7 @@ VENUES = {
         "key": "bellyup",
         "lat": 32.991,  # 143 S Cedros Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -117.2707,
+        "address": "143 S Cedros Ave",
         "name": "Belly Up",
         "has_spotify_lookup": True,
         "city": "Solana Beach, CA",
@@ -325,6 +342,7 @@ VENUES = {
         "key": "thesound",
         "lat": 32.9758,  # 2260 Jimmy Durante Blvd (SD Fairgrounds) — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -117.2617,
+        "address": "2260 Jimmy Durante Blvd",
         "name": "The Sound",
         "has_spotify_lookup": True,
         "city": "Del Mar, CA",
@@ -340,6 +358,7 @@ VENUES = {
         "key": "thecasbah",
         "lat": 32.7303,  # 2501 Kettner Blvd — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -117.1718,
+        "address": "2501 Kettner Blvd",
         "name": "The Casbah",
         "has_spotify_lookup": True,
         "city": "San Diego, CA",
@@ -356,6 +375,7 @@ VENUES = {
         "key": "theobservatory",
         "lat": 32.748,  # 2891 University Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -117.1313,
+        "address": "2891 University Ave",
         "name": "The Observatory North Park",
         "has_spotify_lookup": True,
         "city": "San Diego, CA",
@@ -371,6 +391,7 @@ VENUES = {
         "key": "musicbox",
         "lat": 32.7194,  # 1337 India St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -117.1681,
+        "address": "1337 India St",
         "name": "Music Box SD",
         "has_spotify_lookup": True,
         "city": "San Diego, CA",
@@ -387,6 +408,7 @@ VENUES = {
         "key": "humphreys",
         "lat": 32.7169,  # 2241 Shelter Island Dr — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -117.224,
+        "address": "2241 Shelter Island Dr",
         "name": "Humphreys Concerts by the Bay",
         "has_spotify_lookup": True,
         "city": "San Diego, CA",
@@ -407,6 +429,7 @@ VENUES = {
         "key": "pappy",
         "lat": 34.1564,  # 53688 Pioneertown Rd — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -116.493,
+        "address": "53688 Pioneertown Rd",
         "name": "Pappy & Harriet's",
         "has_spotify_lookup": True,
         "city": "Pioneertown, CA",
@@ -432,6 +455,7 @@ VENUES = {
         "key": "crystalball",
         "lat": 45.5227,  # 1332 W Burnside (406 SW 14th Ave) — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.6848,
+        "address": "1332 W Burnside",
         "name": "Crystal Ballroom",
         "has_spotify_lookup": True,
         "city": "Portland, OR",
@@ -453,6 +477,7 @@ VENUES = {
         "key": "holocene",
         "lat": 45.5174,  # 1001 SE Morrison St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.6554,
+        "address": "1001 SE Morrison St",
         "name": "Holocene",
         "has_spotify_lookup": True,
         "city": "Portland, OR",
@@ -475,6 +500,7 @@ VENUES = {
         "key": "keller",
         "lat": 45.5124,  # 222 SW Clay St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.6782,
+        "address": "222 SW Clay St",
         "name": "Keller Auditorium",
         "has_spotify_lookup": True,
         "city": "Portland, OR",
@@ -496,6 +522,7 @@ VENUES = {
         "key": "polarishall",
         "lat": 45.5621,  # 635 N Killingsworth Ct — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.6738,
+        "address": "635 N Killingsworth Ct",
         "name": "Polaris Hall",
         "has_spotify_lookup": True,
         "city": "Portland, OR",
@@ -518,6 +545,7 @@ VENUES = {
         "key": "roseland",
         "lat": 45.5234,  # 8 NW 6th Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.6761,
+        "address": "8 NW 6th Ave",
         "name": "Roseland Theater",
         "has_spotify_lookup": True,
         "city": "Portland, OR",
@@ -539,6 +567,7 @@ VENUES = {
         "key": "wonderball",
         "lat": 45.5407,  # 123 NE Russell St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.6635,
+        "address": "123 NE Russell St",
         "name": "Wonder Ballroom",
         "has_spotify_lookup": True,
         "city": "Portland, OR",
@@ -560,6 +589,7 @@ VENUES = {
         "key": "paramount",
         "lat": 47.6132,  # 911 Pine St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.3314,
+        "address": "911 Pine St",
         "name": "The Paramount",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -580,6 +610,7 @@ VENUES = {
         "key": "moore",
         "lat": 47.6117,  # 1932 2nd Ave — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.3414,
+        "address": "1932 2nd Ave",
         "name": "The Moore",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -595,6 +626,7 @@ VENUES = {
         "key": "neptune",
         "lat": 47.6611,  # 1312 NE 41st St — geocoded once 2026-11-07 (OSM/Wikidata-verified)
         "lon": -122.314,
+        "address": "1312 NE 41st St",
         "name": "The Neptune",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -613,6 +645,7 @@ VENUES = {
         "key": "showbox",
         "lat": 47.6085,
         "lon": -122.3395,
+        "address": "1426 1st Ave",
         "name": "The Showbox",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -628,6 +661,7 @@ VENUES = {
         "key": "showboxsodo",
         "lat": 47.5880,
         "lon": -122.3339,
+        "address": "1700 1st Ave S",
         "name": "Showbox SoDo",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -643,6 +677,7 @@ VENUES = {
         "key": "neumos",
         "lat": 47.6140,
         "lon": -122.3196,
+        "address": "925 E Pike St",
         "name": "Neumos",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -660,6 +695,7 @@ VENUES = {
         "key": "elcorazon",
         "lat": 47.6187,
         "lon": -122.3293,
+        "address": "109 E Eastlake Ave",
         "name": "El Corazón",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -674,6 +710,7 @@ VENUES = {
         "key": "funhouse",
         "lat": 47.6189,
         "lon": -122.3293,
+        "address": "109 E Eastlake Ave",
         "name": "Funhouse",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -690,6 +727,7 @@ VENUES = {
         "key": "crocodile",
         "lat": 47.6146,
         "lon": -122.3491,
+        "address": "2505 1st Ave",
         "name": "The Crocodile",
         "has_spotify_lookup": True,
         "city": "Seattle, WA",
@@ -712,18 +750,19 @@ def get_venue(key):
 
 
 def geo(venue_id):
-    """The geo tags for a venue: {city, metro, neighborhood|None, lat, lon}.
+    """The geo tags for a venue: {city, metro, neighborhood|None, address, lat, lon}.
 
-    Consumed by common/build.py (which stamps city/metro/neighborhood into
-    shows.json — lat/lon deliberately do NOT go into the feed files) and by
-    the data manifest builder in publish-data.sh (which publishes lat/lon
-    into manifest.json for the iOS client).
+    Consumed by common/build.py (which stamps city/metro/neighborhood/address
+    into shows.json — lat/lon deliberately do NOT go into the feed files) and
+    by the data manifest builder in publish-data.sh (which publishes
+    lat/lon + address into manifest.json for the iOS client).
     """
     v = get_venue(venue_id)
     return {
         "city": v["city"],
         "metro": v["metro"],
         "neighborhood": v.get("neighborhood"),
+        "address": v.get("address"),
         "lat": v.get("lat"),
         "lon": v.get("lon"),
     }

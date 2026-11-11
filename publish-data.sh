@@ -165,6 +165,7 @@ for venue in sorted(os.listdir(root)):
         "venue_id": venue, "file": f"{venue}/shows.json",
         "city": city, "metro": metro,
         # flat WGS84 decimal coords, geocoded once per venue (registry-owned)
+        "address": REG.get(venue, {}).get("address"),
         "lat": REG.get(venue, {}).get("lat"),
         "lon": REG.get(venue, {}).get("lon"),
         "updated_at": updated,
