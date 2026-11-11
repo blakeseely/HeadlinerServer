@@ -44,6 +44,8 @@ import time
 import urllib.parse
 import urllib.request
 
+from PIL import ImageOps
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 # KAGI_API_KEY lives in the repo-root .env (gitignored), the same place the
@@ -60,7 +62,11 @@ from common import venues as venues_mod  # noqa: E402
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 UA = "HeadlinerListings-venue-image-tool/1.0 (contact: repo owner)"
 
-MIN_PX = 750                 # required short-side minimum
+MIN_PX = 750                 # required minimum on the source's short side
+# The published file only has to keep the 750px rule on the LONG side: the
+# aspect ratio is free, so a wide source (e.g. 2717x1539 -> 1200x680) may fall
+# below 750 on its short side after the 1200px cap and is still valid.
+MIN_STORED_LONG_PX = 750
 TARGET_PX = 1200             # resize width/height cap when the original is huge
 MAX_ORIGINAL_MB = 120        # download ceiling for originals (they get
                              # downscaled to TARGET_PX; show photos from
@@ -736,7 +742,7 @@ def cmd_find(args):
                     flags.append("geo-match")
                 if r["rank"] <= 1:
                     flags.append("venue-category")
-                line = (f"- [{r['relevance']:.2f}] `{r['title'][:90]}` "
+                line = (f"- [{r['relevance']:.2f}] `{r['title']}` "
                         f"{r['width']}x{r['height']} {r['license']}")
                 if r.get("page_url"):
                     line += f"\n    page: {r['page_url']}"
@@ -789,13 +795,20 @@ def cmd_find(args):
 # --------------------------------------------------------------- apply pass
 
 def _resize(info, im):
-    from PIL import Image
+    from PIL import Image, ExifTags
+    # EXIF Orientation must be baked into the pixels: PIL discards EXIF on
+    # re-save, so a rotation-tagged original (e.g. a landscape facade shot
+    # tagged Orientation=6) would otherwise render 90 degrees sideways.
+    orient = (im.getexif() or {}).get(0x0112)   # 0x0112 == 274 == Orientation
+    if orient in (2, 3, 4, 5, 6, 7):
+        im = ImageOps.exif_transpose(im)
     if min(info["width"], info["height"]) < MIN_PX:
         raise ValueError(f"source is {info['width']}x{info['height']}, below {MIN_PX}")
-    if min(info["width"], info["height"]) <= TARGET_PX:
+    w, h = im.size   # post-transpose truth, not the header dims
+    if min(w, h) <= TARGET_PX:
         return im  # native size already satisfies the rule
-    scale = TARGET_PX / max(info["width"], info["height"])
-    return im.resize((round(info["width"] * scale), round(info["height"] * scale)),
+    scale = TARGET_PX / max(w, h)
+    return im.resize((round(w * scale), round(h * scale)),
                      getattr(Image, "Resampling", Image).LANCZOS)
 
 
@@ -842,7 +855,12 @@ def _audit(venue_id):
         return False
     from PIL import Image
     with Image.open(p) as im:
-        return min(im.size) >= MIN_PX and im.format == "JPEG"
+        if max(im.size) < MIN_STORED_LONG_PX or im.format != "JPEG":
+            return False
+        # an orientation-tagged stored file means a raw (unbaked) original
+        # was copied — exactly the sideways-rendering bug
+        orient = (im.getexif() or {}).get(0x0112)
+        return orient in (None, 1)
 
 
 def _apply_commons(f):

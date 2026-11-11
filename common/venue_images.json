@@ -1,15 +1,25 @@
 {
   "augusthall": {
     "approved": false,
+    "artist": "Chris Tuite (venue-credited)",
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://www.augusthallsf.com/wp-content/uploads/2021/12/Chris-Tuite_Finneas_AugustHall.jpg",
+    "image_url": "https://www.augusthallsf.com/wp-content/uploads/2021/12/Chris-Tuite_Finneas_AugustHall.jpg",
+    "license": "venue's official website, used for venue identification",
+    "note": "2560x1708 jpeg, venue's own site (show photo)",
+    "page_url": "https://www.augusthallsf.com/",
+    "source": "web"
   },
   "bellyup": {
     "approved": false,
+    "artist": "unknown (Restaurant Guru)",
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://img.restaurantguru.com/r0ab-Belly-Up-Tavern-facade-2022-10.jpg",
+    "image_url": "https://img.restaurantguru.com/r0ab-Belly-Up-Tavern-facade-2022-10.jpg",
+    "license": "aggregator web image, used for venue identification",
+    "note": "1200x794 jpeg facade",
+    "page_url": "https://restaurantguru.com/Belly-Up-San-Diego",
+    "source": "web"
   },
   "bgc": {
     "approved": false,
@@ -19,9 +29,14 @@
   },
   "brickandmortar": {
     "approved": false,
+    "artist": "venue (photographer uncredited)",
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://www.brickandmortarmusic.com/wp-content/uploads/DSC_6999-Enhanced-NR-scaled-0x0.jpg",
+    "image_url": "https://www.brickandmortarmusic.com/wp-content/uploads/DSC_6999-Enhanced-NR-scaled-0x0.jpg",
+    "license": "venue's official website, used for venue identification",
+    "note": "2560x1707 jpeg, venue's own site",
+    "page_url": "https://www.brickandmortarmusic.com/about/",
+    "source": "web"
   },
   "cafedunord": {
     "approved": false,
@@ -32,10 +47,9 @@
   "castro": {
     "approved": true,
     "auto": false,
-    "category": "The Castro Theatre (Wikimedia category)",
-    "file": "File:Castro Theatre in San Francisco (TK2).JPG",
-    "note": "3840x5760 CC BY-SA 3.0, same TK-series as the previously verified TK1 shot",
-    "source": "report-pick"
+    "file": "File:Castro Theatre Marquee December 2013 (2).JPG",
+    "note": "2717x1539 CC BY-SA 3.0 landscape marquee shot; replaces portrait TK2 facade photo",
+    "source": "commons"
   },
   "chapel": {
     "approved": false,
@@ -57,9 +71,14 @@
   },
   "elcorazon": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "2040x1340 \u2014 RESOLVE URL AT APPLY (image_url truncated in report)",
+    "page_url": "https://regalbuzz.com/seattle/el-corazon-seattle/",
+    "source": "web"
   },
   "fillmore": {
     "approved": false,
@@ -77,15 +96,25 @@
   },
   "frost": {
     "approved": false,
+    "artist": "CAW Architects",
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Engineering.jpg",
+    "image_url": "https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Engineering.jpg",
+    "license": "project architect's website, used for venue identification",
+    "note": "1750x1184 jpeg; the amphitheater per its renovation architect (CAW)",
+    "page_url": "https://cawarchitects.com/projects/higher-education/frost-amphitheater/",
+    "source": "web"
   },
   "funhouse": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "1200x800 \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://www.wegow.com/es/conciertos/fallujah-concert-in-seattle-funhouse-3",
+    "source": "web"
   },
   "gamh": {
     "approved": false,
@@ -101,21 +130,36 @@
   },
   "holocene": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "1500x998 webp venue photography \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://kylecarnesphotography.com/holocene/",
+    "source": "web"
   },
   "humphreys": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "2000x1333 webp, SDUT \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://www.sandiegouniontribune.com/2026-03-08/humphreys-concerts-by-the-bay-a-quintessential-",
+    "source": "web"
   },
   "independent": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "3000x1687 jpeg \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://thevendry.com/venue/23794/the-independent-san-francisco-ca",
+    "source": "web"
   },
   "keller": {
     "approved": false,
@@ -131,9 +175,14 @@
   },
   "musicbox": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://musicboxsd.com/",
+    "image_url": "https://musicboxsd.com/",
+    "license": null,
+    "note": "1500x846 jpeg venue header \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
+    "page_url": "https://musicboxsd.com/",
+    "source": "web"
   },
   "neptune": {
     "approved": false,
@@ -149,9 +198,14 @@
   },
   "pappy": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "1600x900 webp \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://desertoasisinsider.shop/blogs/history/pappy-harriets-pioneertown-music-history",
+    "source": "web"
   },
   "paramount": {
     "approved": true,
@@ -163,9 +217,14 @@
   },
   "polarishall": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "3000x2000 jpeg venue site \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
+    "page_url": "https://polarishall.com/",
+    "source": "web"
   },
   "regency": {
     "approved": false,
@@ -187,9 +246,14 @@
   },
   "sfjazz": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:https://www.sfjazz.org/visit/sfjazz-center/",
+    "image_url": "https://www.sfjazz.org/visit/sfjazz-center/",
+    "license": null,
+    "note": "1920x1080 jpeg venue site \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
+    "page_url": "https://www.sfjazz.org/visit/sfjazz-center/",
+    "source": "web"
   },
   "showbox": {
     "approved": false,
@@ -213,15 +277,25 @@
   },
   "theobservatory": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "2182x1500 jpeg Live Nation venue page \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://specialevents.livenation.com/venues/observatory-north-park",
+    "source": "web"
   },
   "thesound": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "1600x1067 webp venue site \u2014 RESOLVE DIRECT IMAGE URL AT APPLY",
+    "page_url": "https://thesoundsd.com/",
+    "source": "web"
   },
   "warfield": {
     "approved": true,
@@ -233,8 +307,13 @@
   },
   "wonderball": {
     "approved": false,
+    "artist": null,
     "auto": false,
-    "file": null,
-    "note": "no strong auto candidate \u2014 pick from the report"
+    "file": "web:<needs-url>",
+    "image_url": null,
+    "license": null,
+    "note": "1125x879 webp \u2014 RESOLVE URL AT APPLY",
+    "page_url": "https://niewmedia.com/en/series/mayaongaku/07_edknz_wrmys/",
+    "source": "web"
   }
 }
