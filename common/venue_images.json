@@ -96,13 +96,13 @@
   },
   "frost": {
     "approved": true,
-    "artist": "CAW Architects",
+    "artist": "Studio-MLA (landscape architect, venue renovation)",
     "auto": false,
-    "file": "web:https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Exterior-Daytime-Stage-Crowd-CAW-Architects-3a.jpg",
-    "image_url": "https://cawarchitects.com/wp-content/uploads/2021/05/Frost-Amphitheater-School-Exterior-Daytime-Stage-Crowd-CAW-Architects-3a.jpg",
-    "license": "project architect's website, used for venue identification",
-    "note": "1750x1184 jpeg; the amphitheater per its renovation architect (CAW)",
-    "page_url": "https://cawarchitects.com/projects/higher-education/frost-amphitheater/",
+    "file": "web:https://studio-mla.com/wp-content/uploads/2021/04/190710-50_fixededit.jpg",
+    "image_url": "https://studio-mla.com/wp-content/uploads/2021/04/190710-50_fixededit.jpg",
+    "license": "project landscape architect's website, used for venue identification",
+    "note": "1920x1279 jpeg, user-found; amphitheater w/ Hoover Tower at a performance",
+    "page_url": "https://studio-mla.com/design/stanford-university-frost-amphitheater/",
     "source": "web"
   },
   "funhouse": {
