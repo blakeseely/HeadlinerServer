@@ -21,15 +21,25 @@ one from the text. The one clean invariant discovered in the data:
 So the cascade is (first hit wins):
   1. DJ-prefixed title                    -> music
   2. venue film stamp in desc/topline     -> film
-  3. music evidence in bio/topline        -> music   (bios win over the
+  3. film promoter credit in topline
+     (MOViES FOR MANiACS, Another Planet)  -> film
+  4. music evidence in bio/topline        -> music   (bios win over the
                                                       "directed by"/"screening"
                                                       words that movie-adjacent
                                                       bios sometimes use)
-  4. comedy evidence in title/bio         -> comedy
-  5. soft film words in desc/topline/bio  -> film
-  6. spoken-word / awards in title/bio    -> other
-  7. default                              -> music; needs_review when the
+  5. comedy evidence in title/bio/topline -> comedy
+     (incl. "LIVE SPECIAL TAPING" = stand-up special)
+  6. soft film words in desc/topline/bio  -> film
+  7. spoken-word / awards in title/bio    -> other
+  8. default                              -> music; needs_review when the
                                              body is only the generic stub.
+
+The topline "present" line is a strong venue signal: "MOViES FOR MANiACS
+and Another Planet present" = film, "Another Planet Entertainment &
+Golden Girls Live present" + a post-film Q&A = film. "LIVE SPECIAL TAPING"
+is a stand-up special (comedy). These fire BEFORE the music fallback so
+film/comedy rows aren't mis-classified as music when the detail-page
+desc/bio is only the generic venue stub.
 
 No Apple Music matching for film: a film's billed name is the movie (or its
 director), which Apple Music's artist catalog does not cover. Music and
@@ -61,6 +71,11 @@ SRC_URL = "https://thecastro.com/calendar/"
 FILM_STAMP_RE = re.compile(
     r"film format|rated [rpg]\b|in 35mm|in 70mm|4k restoration|"
     r"sffilm|frameline|criterion|janus films|film festival", re.I)
+# Film promoter credits in the topline "present" line — a strong venue
+# signal that fires BEFORE the music fallback (the detail-page desc/bio
+# is often only the generic stub for these rows).
+FILM_PROMO_RE = re.compile(
+    r"movies for maniacs|another planet|golden girls live|post-film", re.I)
 # Words that mark a film but also show up in music/comedy bios, so they only
 # vote AFTER the music and comedy evidence has been checked.
 FILM_SOFT_RE = re.compile(
@@ -68,7 +83,7 @@ FILM_SOFT_RE = re.compile(
 MUSIC_RE = re.compile(
     r"\b(dj\b|band|artist|album|record|records|songs?|songwriter|producer|"
     r"musician|live show|acoustic|dj set)\b", re.I)
-COMEDY_RE = re.compile(r"comedian|stand-?up|comedy", re.I)
+COMEDY_RE = re.compile(r"comedian|stand-?up|comedy|live special taping", re.I)
 # Non-music, non-film, non-comedy bookings (spoken word, awards).
 OTHER_RE = re.compile(r"story[ ]?slam|grand[ ]?slam|legends[ ]?awards", re.I)
 
@@ -87,7 +102,12 @@ def classify(title, desc, bio, topline, bottomline):
         return "music", False
     if FILM_STAMP_RE.search(d) or FILM_STAMP_RE.search(tl):
         return "film", False
-    if COMEDY_RE.search(t):
+    # Film promoter credit in the topline — a strong venue signal that fires
+    # BEFORE the music fallback (the detail-page desc/bio is often only the
+    # generic stub for these rows).
+    if FILM_PROMO_RE.search(tl):
+        return "film", False
+    if COMEDY_RE.search(t) or COMEDY_RE.search(tl):
         return "comedy", False
     if MUSIC_RE.search(t) or MUSIC_RE.search(b) or MUSIC_RE.search(tl):
         return "music", False
@@ -226,6 +246,11 @@ def main():
         desc, bio = d.get("desc"), d.get("bio")
         cat, review = classify(r.get("title"), desc, bio,
                                r.get("topline"), r.get("bottomline"))
+        if cat != "music":
+            # Music-only feed: the Castro books film, comedy, and spoken-word
+            # alongside concerts. The app lists music events only, so skip
+            # non-music rows (no record, no lookup work).
+            continue
 
         name, show_title = split_name_title(r.get("title") or "")
         head = [name] if name else []
