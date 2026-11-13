@@ -176,7 +176,9 @@ def main():
                 iso = perf_date(p.get("date_text"), d.get("date_start"), today)
                 if not iso:
                     continue
-                pt = norm_time(re.sub(r"(?i)^(mon|tues|tue|wed|thur|thu|fri|sat|sun)day?,?\s*",
+                pt = norm_time(re.sub(r"(?i)^(?:monday|mon|tuesday|tues|tue|wednesday|wed|"
+                                      r"thursday|thur|thu|friday|fri|saturday|sat|sunday|sun)\s*,"
+                                      r"?[\s]*",
                                       "", p.get("time_text") or "")) or None
                 rows.append((iso, pt, p.get("ticket") or default_ticket,
                              p.get("perf_note")))
