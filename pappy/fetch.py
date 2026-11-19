@@ -5,62 +5,97 @@ Pappy & Harriet's is the historic Pioneertown Palace (53688 Pioneertown Rd,
 Pioneertown CA — grouped with the LA market in the app, per the owner). Its
 site is a WordPress install behind a bot wall: the rendered HTML routes
 (/live-music, /calendar, /home) 403 BOTH curl AND a real browser, so the human
-pages are NOT a viable recurring source. BUT the WordPress REST API is open:
+pages are NOT a viable recurring source. The old source — the WordPress REST
+API page (wp-json/wp/v2/pages?slug=calendar) whose content.rendered carried
+server-rendered seetickets month tables + list-view cards — is DEAD: the site
+moved to a Tixwhirl/FullCalendar JS plugin, and that page content is now only
+plugin scaffolding (tw-plugin-calendar, fc-daygrid-*) with no event markup.
 
-      GET https://pappyandharriets.com/wp-json/wp/v2/pages?slug=calendar
+Where the data lives now (verified): the calendar plugin loads its feed via an
+AJAX POST:
 
-returns the calendar page's `content.rendered` fully SERVER-RENDERED (one
-stable GET; the page stores its list-view cards + 12 month tables as WP
-content). We read the feed from the API, not the walled HTML.
+      POST https://pappyandharriets.com/wp-admin/admin-ajax.php
+      form: action=get_events_for_calendar, nonce=<page nonce>,
+            start=<today>, end=<~18 months out>, params={…template…}
 
-Two regions of that content, merged into one record per show:
+(the nonce is a constant baked into the /calendar page — if a request ever
+comes back with an error, we re-fetch that page once and re-extract it.)
+The JSON response carries:
 
-  * MONTH TABLES  (the backbone): 12 server-rendered
-    <table class="seetickets-calendar"> (one per calendar month,
-    Oct 2026 -> Sep 2027). Each event card sits in a <td> and carries:
-    day number (<div class="date-number">), ticket href, billed title,
-    Show/Doors times, and the buy-button state (button-gettickets /
-    button-soldout).
-  * LIST-VIEW CARDS (the enrichment, the nearest ~40 shows): rich cards
-    (<div ... data-listtype="list">) that add the clean headliner name,
-    "Supporting Talent: …", the GENRE, ages, price, and full date.
+  * events[] (the backbone, one per show): {id, start (YYYY-MM-DD), title,
+    doors, displayTime (the show time), sortkey, url:" #tw-event-dialog-<id>"}
+    — the url is a dialog fragment, NOT a page; the event page is /calendar.
+  * popupdata (the enrichment): one <div class="tw-cal-event-popup"
+    id="tw-event-dialog-<id>"> per event, matched to events[] by id:
+      tw-name               -> the billed title (a "Name at/with Support"
+                               lead splits into a clean headliner + tail)
+      tw-name-presenting    -> the promoter ("… Presents:")
+      tw-attractions        -> the billed bill, per-artist <span> acts, head
+                               first, in published order; the spot where the
+                               plugin publishes per-artist Spotify links
+                               (common.spotify.extract_links runs here)
+      tw-description        -> the show description (P&H policies boilerplate)
+      tw-prefix-text        -> ages ("All Ages")
+      tw-info-price-buy-tix -> price text + the buy button, whose class is
+                               tw_offsale | tw_onsale | tw_soldout, and the
+                               ticketweb.com EVENT url (the purchase link —
+                               i.ticketweb.com image urls are skipped)
 
-The two regions share ticket URLs, so we merge on a normalized URL key:
-every show keeps its table date/times, and the nearest shows gain the
-list-view headliner/support/genre/ages/price on top. A show present in only
-one region is still emitted (the list's date carries its own month).
+This venue publishes NO genre and NO price (confirmed across the whole feed),
+so those fields stay honest nulls for build.py. Past dates are already pruned
+server-side; night-split shows are separate ids, not multi-day passes, and
+all stay. Genre-less titles stay music via build.py's classifier.
 
-Multi-day passes (a "[2-Day Pass]" row for the same festival) are DROPPED —
-they are ticket packages, not shows. Ticket URLs point at Seetickets event
-pages, which are bot-walled (the Chapel / Rickshaw lesson), so they are kept
-only as ticket_link/event_page and never scraped — per-artist Spotify is an
-honest null (the registry turns on the Spotify API lookup instead).
-
-Output: cache/events.json — one record per unique show.
+Output: cache/events.json — one record per unique show (deduped by id).
 """
-import os, re, json, html, urllib.request
+import os, re, json, html, datetime
+import urllib.request, urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+import sys
+sys.path.insert(0, ROOT)
+from common import spotify
+
 OUT = os.path.join(HERE, "cache", "events.json")
-RAW = os.path.join(HERE, "cache", "calendar_raw.json")
+RAW = os.path.join(HERE, "cache", "events_raw.json")
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/125.0 Safari/537.36")
-API = ("https://pappyandharriets.com/wp-json/wp/v2/pages"
-       "?slug=calendar&_fields=id,link,content")
 
-MONTHS = {n: i + 1 for i, n in enumerate(
-    ["january", "february", "march", "april", "may", "june",
-     "july", "august", "september", "october", "november", "december"])}
-MON_ABBR = {m[:3].lower(): v for m, v in MONTHS.items()}
+CALENDAR = "https://pappyandharriets.com/calendar"
+AJAX = "https://pappyandharriets.com/wp-admin/admin-ajax.php"
+# The nonce the calendar page bakes into the plugin (constant; re-extracted
+# from the page content as the fallback below).
+NONCE = "bf99544d98"
+NONCE_RE = re.compile(
+    r'''["']?nonce["']?\s*[:=]\s*["']([0-9a-f]{6,12})["']''')
+# The plugin's params blob (all nulls except the template).
+PARAMS = {"id": None, "type": "calendar", "event_id": None, "event_ids": None,
+          "tags": None, "excludetags": None, "genres": None, "start": None,
+          "end": None, "venue": None, "org": None, "template": "default"}
 
-# A ticket/event link: the Seetickets family (the venue's only ticketer).
-TICKET_RE = re.compile(
-    r'href="([^"]*(?:seetickets|eventim|ticketmaster|sickening|urldefense)[^"]*)"')
+MIN_EVENTS = 50          # below this the window is suspect -> widen and retry
+WINDOW_DAYS = 540        # ~18 months out
+WIDEN_DAYS = 180         # the widen step, ~6 more months
+
+# The buy button's state class -> a ticket status.
+STATUS_BY_CLASS = {"tw_offsale": "on sale", "tw_onsale": "on sale",
+                   "tw_soldout": "sold out"}
+
+# The TicketWeb EVENT url (the purchase link). Image urls live on the
+# i.ticketweb.com host (https://i.ticketweb.com/i/…) and never match.
+TICKETWEB_RE = re.compile(r'href="(https?://[^"\s]*ticketweb\.com/event/[^"\s]*)')
+
+# "<Headliner> at <Support>" / "with" / "w/" — a cleaner split than the title
+# grammar's prose-prone "with" branch; only when a capitalized name follows.
+NAME_SPLIT_RE = re.compile(r"\s+(?:at|with|w/)\s+(?=[A-Z(])")
 
 
-def fetch(url=API):
+def fetch(url=CALENDAR, data=None, headers=None):
     req = urllib.request.Request(
-        url, headers={"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9"})
+        url, data=data,
+        headers={"User-Agent": UA, "Accept-Language": "en-US,en;q=0.9",
+                 **(headers or {})})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read().decode("utf-8", "replace")
 
@@ -75,260 +110,240 @@ def clean(s):
     return s or None
 
 
-def unwrap(href):
-    """Unwrap a possible urldefense spam-filter redirect; drop tracking."""
-    if not href:
+def ajax_body(nonce, start, end):
+    return urllib.parse.urlencode({
+        "action": "get_events_for_calendar",
+        "nonce": nonce,
+        "start": start,
+        "end": end,
+        "params": json.dumps(PARAMS, separators=(",", ":")),
+    }).encode()
+
+
+def ajax_fetch(nonce, start, end):
+    """One polite AJAX call -> the parsed response, or None on any failure."""
+    try:
+        raw = fetch(AJAX, ajax_body(nonce, start, end), headers={
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": CALENDAR})
+        return json.loads(raw)
+    except Exception as exc:
+        print(f"  !! ajax fetch failed ({start}..{end}): {exc}")
         return None
-    m = re.match(r"https://urldefense\.com/v3/__([^?]+)\?.*?:__", href) or \
-        re.match(r"https://urldefense\.com/v3/__([^_].*?);__", href)
-    if m:
-        href = m.group(1)
-    href = re.sub(r"\?.*$", "", href)
-    return href or None
 
 
-def norm_key(url):
-    """Join key: host + path, lowercase, query stripped. Tolerant of the
-    seetickets<->eventim host swap (same event, two brands)."""
-    if not url:
+def refresh_nonce():
+    """Fallback: re-fetch the /calendar page once and re-extract the nonce."""
+    try:
+        m = NONCE_RE.search(fetch())
+        return m.group(1) if m else None
+    except Exception as exc:
+        print(f"  !! nonce page fetch failed: {exc}")
         return None
-    m = re.search(r"https?://([^/]+)(/[^?#]*)", url)
-    if not m:
-        return None
-    host = m.group(1)
-    if host.endswith(("seetickets.us", "eventim.us")):
-        host = "eventim.us"
-    return (host + m.group(2)).lower().rstrip("/")
 
 
-def first_ticket(card):
-    m = TICKET_RE.search(card)
-    return unwrap(m.group(1)) if m else None
+def fetch_data():
+    """Pull the calendar window: today -> ~18 months out. An error response
+    re-extracts the nonce from the page and retries; a thin window (<50
+    events) widens `end` another ~6 months and re-requests (superset)."""
+    now = datetime.datetime.now()
+    start = now.strftime("%Y-%m-%d")
+    days = WINDOW_DAYS
+    data = None
+    for attempt in range(4):
+        end = (now + datetime.timedelta(days=days)).strftime("%Y-%m-%d")
+        data = ajax_fetch(NONCE, start, end)
+        if data is None or data.get("error"):
+            nonce = refresh_nonce()
+            if nonce and nonce != NONCE:
+                print(f"  nonce updated: {nonce}")
+                data = ajax_fetch(nonce, start, end)
+        if isinstance(data, dict) and not data.get("error") \
+                and len(data.get("events") or []) >= MIN_EVENTS:
+            return data
+        print(f"  thin window ({start}..{end}) -> widening +{WIDEN_DAYS}d")
+        days += WIDEN_DAYS
+    return data
 
 
-def button_status(card):
-    """The buy button's CLASS + text -> a ticket status, or None."""
-    m = re.search(r"<a[^>]*class='([a-z-]+?)\s*'\s*>(.*?)</a>",
-                  card, re.S | re.I)
-    if not m:
-        m = re.search(r'<a[^>]*class="([a-z-]+?)"[^>]*>(.*?)</a>',
-                      card, re.S | re.I)
-    if not m:
-        return None
-    cls, text = m.group(1), clean(m.group(2))
-    if "soldout" in cls or (text and re.search(r"sold\s*out", text, re.I)):
-        return "sold out"
-    if "sold" in cls or "protected" in cls:
-        return "not on sale"
-    if re.search(r"event passed|passed", text or "", re.I):
-        return None  # past shows fall off on the next crawl
-    if "gettickets" in cls or (text and re.search(r"buy|tickets|info", text, re.I)):
-        return "on sale"
-    return None
-
-
-def parse_tables(src):
-    """Backbone: one record per event card in the 12 month tables."""
-    rows = {}
-    blocks = re.split(
-        r'(?=<table[^>]*class="[^"]*seetickets-calendar[^"]*")', src)
-    for b in blocks[1:]:
-        end = b.find("</table>")
-        tbl = b[:end] if end > 0 else b
-        # month + year live in the header text immediately before the table
-        # (<span class="bold">October</span> 2026 — the tag splits month from
-        # year, so strip tags first, then match).
-        pos = src.find(b)
-        pre = src[max(0, pos - 220):pos]
-        pre_text = html.unescape(re.sub(r"<[^>]+>", " ", pre))
-        hm = re.search(r"\b(" + "|".join(MONTHS) + r")\s+(\d{4})\b",
-                       pre_text, re.I)
-        if not hm:
-            continue
-        mon = MONTHS.get(hm.group(1).lower())
-        year = int(hm.group(2))
-        if not mon:
-            continue
-        starts = [m.start() for m in re.finditer(
-            r'<div class="[^"]*seetickets-calendar-event-container[^"]*"', tbl)]
-        for i, s in enumerate(starts):
-            e = starts[i + 1] if i + 1 < len(starts) else len(tbl)
-            card = tbl[s:e]
-            url = first_ticket(card)
-            key = norm_key(url)
-            # day number is a <div class="date-number"> SIBLING that precedes
-            # the card inside the same <td>; bound the lookback at the <td>
-            # start so we never read the previous week-cell's day number.
-            td_start = tbl.rfind("<td", 0, s)
-            look = tbl[td_start if td_start != -1 else 0:s]
-            dm = re.search(r'date-number[^>]*>\s*(\d{1,2})\s*<', look)
-            day = int(dm.group(1)) if dm else None
-            date = f"{year:04d}-{mon:02d}-{day:02d}" if day else None
-
-            tm = re.search(
-                r'seetickets-calendar-event-title[^>]*>.*?<a[^>]*>(.*?)</a>',
-                card, re.S)
-            title = clean(tm.group(1)) if tm else None
-            if title and re.search(r"\[2-Day Pass\]", title, re.I):
-                continue  # a ticket package, not a show
-
-            stm = re.search(r'(?i)Show\s+at\s+([A-Za-z0-9:]+)', card)
-            dom = re.search(r'(?i)Doors\s+at\s+([A-Za-z0-9:]+)', card)
-
-            rec = {
-                "url": url,
-                "title": title,
-                "date": date,
-                "doors": dom.group(1) if dom else None,
-                "show_time": stm.group(1) if stm else None,
-                "ticket_link": url,
-                "ticket_status": button_status(card),
-                "event_page": url,
-                "headliner": None,
-                "genre": None,
-                "age": None,
-                "price": None,
-                "support": None,
-                "presenters": [],
-            }
-            if key and key not in rows:
-                rows[key] = rec
-    return rows
-
-
-def list_date(s):
-    """'Fri Oct 23' / 'Sat Nov 21 2027' -> (year, month, day) or None."""
-    m = re.match(r"(?:[A-Za-z]{3,9}\s+)?([A-Za-z]{3,9})\s+(\d{1,2})"
-                 r"(?:\s+(\d{4}))?", s or "")
-    if not m:
-        return None
-    mon = MON_ABBR.get(m.group(1)[:3].lower())
-    if not mon:
-        return None
-    return (int(m.group(3)) if m.group(3) else None, mon, int(m.group(2)))
-
-
-def parse_list_cards(src):
-    """Enrichment: the nearest shows' rich fields, keyed by normalized URL."""
+def parse_popups(src):
+    """Enrichment: one dict per popup, keyed by the dialog event id."""
     enr = {}
     starts = [m.start() for m in re.finditer(
-        r'data-listtype="list"', src)]
+        r'<div[^>]*class="[^"]*tw-cal-event-popup[^"]*"', src)]
     for i, s in enumerate(starts):
         e = starts[i + 1] if i + 1 < len(starts) else len(src)
-        card = src[s:e]
-        url = first_ticket(card)
-        key = norm_key(url)
-        if not key:
+        seg = src[s:e]
+        mid = re.search(r'id="tw-event-dialog-(\d+)"', seg)
+        if not mid:
             continue
-        g = lambda p, fl=0: (lambda m: m.group(1) if m else None)(
-            re.search(p, card, fl))
-        t = re.search(r'mb-12 title"><a[^>]*>([^<]+)</a>', card)
-        title = clean(t.group(1)) if t else None
-        if title and re.search(r"\[2-Day Pass\]", title, re.I):
-            continue
-        head = clean(g(r'class="fs-12 headliners">(.*?)</p>', re.S))
-        genre = clean(g(r'class="fs-12 genre">(.*?)</p>', re.S))
-        age = clean(g(r'class="ages"[^>]*>(.*?)</span>', re.S))
-        price = clean(g(r'class="fs-12[^"]*"\s*>\s*<span class="price">(.*?)</span>', re.S))
-        sup = clean(g(r'class="fs-12 supporting-talent">(.*?)</p>', re.S))
-        header = clean(g(r'class="fs-12 header">(.*?)</p>', re.S))
-        dtext = clean(g(r'mt-1r date">(.*?)</p>', re.S))
-        ymd = list_date(dtext) if dtext else None
-        presenters = [header] if header else []
-        rec = {
-            "url": url,
+        g = lambda p: (lambda m: clean(m.group(1)) if m else None)(
+            re.search(p, seg, re.S))
+        title = g(r'<div class="tw-name">(.*?)</div>')
+
+        # the billed bill: per-artist <span> acts, head first, in published
+        # order (the plugin's own structured split of the lineup).
+        at = re.search(r'<div class="tw-attractions">(.*?)</div>', seg, re.S)
+        acts = [html.unescape(a).strip() for a in
+                re.findall(r"<span>(.*?)</span>", at.group(1), re.S)] \
+            if at else []
+        acts = [a for a in (clean(x) for x in acts) if a]
+
+        presenting = g(r'<div class="tw-name-presenting">(.*?)</div>')
+        presenters = [presenting] if presenting else None
+
+        # the clean headliner (build.py falls back to title when null): a
+        # "Name at/with Support" lead is the headliner; "An evening with: X"
+        # keeps the published title AND names X; a bare title is its own head.
+        headliner = None
+        if title:
+            if re.match(r"(?i)^an evening (?:with|at)\b", title):
+                headliner = re.sub(
+                    r"(?i)^an evening (?:with|at)[:\s]*", "", title).strip() \
+                    or None
+            else:
+                m = NAME_SPLIT_RE.search(title)
+                if m and m.start() > 0:
+                    headliner = title[:m.start()].strip(" –—:") or None
+
+        # support = the bill after the head. "An evening with: X" (head==acts[0])
+        # and "Name at/with X" (the tail IS acts[0]) must not re-list the act;
+        # word-order compare (not equality) because acts may differ in
+        # punctuation (the title's "Um, Jennifer" vs span "Um, Jennifer" is the
+        # same act, but the title lead "Mini Trees" drops nothing).
+        support = None
+        if len(acts) > 1:
+            head_norm = _words(headliner or title or "")
+            tail_norm = None
+            m = NAME_SPLIT_RE.search(title or "")
+            if m and m.start() > 0:
+                tail_norm = _words(title[m.end():])
+            sp = []
+            for j, a in enumerate(acts):
+                aw = _words(a)
+                if j == 0 and (aw == head_norm[:len(aw)]
+                               or (tail_norm and aw == tail_norm)):
+                    continue
+                sp.append(a)
+            support = ", ".join(sp) if sp else None
+
+        # buy button: its state class -> the status; its href -> the TicketWeb
+        # event url (the purchase link).
+        ticket_link = ticket_status = price = None
+        buy = re.search(
+            r'<a[^>]*class="[^"]*tw-buy-tix-btn[^"]*tw_(?:offsale|onsale|soldout)'
+            r'[^"]*"[^>]*>', seg, re.I)
+        if buy:
+            cls = re.search(r"tw_(offsale|onsale|soldout)", buy.group(0), re.I)
+            if cls:
+                ticket_status = STATUS_BY_CLASS["tw_" + cls.group(1).lower()]
+            href = re.search(r'href="([^"]+)"', buy.group(0))
+            if href:
+                tm = TICKETWEB_RE.search(
+                    f'<a href="{html.unescape(href.group(1))}">')
+                ticket_link = tm.group(1) if tm else None
+        if not ticket_link:
+            tm = TICKETWEB_RE.search(seg)
+            ticket_link = tm.group(1) if tm else None
+        m = re.search(r'(?:ADV|GA)\s*(?:early|day of)?\s*[:\-]?\s*\$\s?\d+',
+                      seg, re.I)
+        price = clean(m.group(0)) if m else None
+
+        enr[mid.group(1)] = {
             "title": title,
-            "date": (f"{ymd[0]:04d}-{ymd[1]:02d}-{ymd[2]:02d}"
-                     if ymd and ymd[0] else None),
-            "_date_raw": dtext if (ymd and ymd[0] is None) else None,
-            "doors": None,
-            "show_time": None,
-            "ticket_link": url,
-            "ticket_status": button_status(card),
-            "event_page": url,
-            "headliner": head or None,
-            "genre": genre,
-            "age": age,
+            "headliner": headliner,
+            "support": support,
+            "genre": None,     # this feed publishes no genre field
+            "age": g(r'<div class="tw-prefix-text">(.*?)</div>'),
+            "description": g(r'<div class="tw-description">(.*?)</div>'),
             "price": price,
-            "support": sup,
             "presenters": presenters,
+            "ticket_link": ticket_link,
+            "ticket_status": ticket_status,
+            "spotify": spotify.extract_links(seg) or None,
         }
-        if key not in enr:
-            enr[key] = rec
     return enr
 
 
-def parse(src):
-    tables = parse_tables(src)
-    enrichment = parse_list_cards(src)
-    rows = list(tables.values())
-    # a show in the list window but missing from the tables (a feed lag)
-    for key, r in enrichment.items():
-        if key not in tables:
-            rows.append(r)
-    for r in rows:
-        key = norm_key(r.get("url"))
-        en = enrichment.get(key)
-        if en:
-            for k in ("headliner", "genre", "age", "price", "support",
-                      "presenters", "_date_raw"):
-                if not r.get(k):
-                    r[k] = en.get(k)
-            # the list carries a full date the yearless/None table row lacks
-            if not r.get("date") and en.get("date"):
-                r["date"] = en["date"]
-    # Resolve yearless list dates (the list bills 'Fri Oct 23' with no year).
-    # Anchor on the table dates: the nearest table show sharing a month+day
-    # supplies the year; a show whose month+day precedes every table date
-    # takes the first table's year (it is the nearest upcoming occurrence).
-    table_dates = [r["date"] for r in rows if r.get("date")]
-    if table_dates:
-        for r in rows:
-            if r.get("date"):
-                continue
-            m = re.search(r"([A-Za-z]{3,9})\s+(\d{1,2})", r.get("_date_raw") or "")
-            if not m:
-                continue
-            mon = MON_ABBR.get(m.group(1)[:3].lower())
-            if not mon:
-                continue
-            for t in sorted(table_dates):
-                ty, tmon, tday = (int(x) for x in t.split("-"))
-                if tmon == mon and tday == int(m.group(2)):
-                    r["date"] = f"{t}"
-                    break
-            else:
-                r["date"] = f"{table_dates[0][:4]}-{mon:02d}-" \
-                    f"{int(m.group(2)):02d}"
-            r.pop("_date_raw", None)
-    for r in rows:
-        r.pop("_date_raw", None)
-    rows.sort(key=lambda r: (r.get("date") or "9999", r.get("doors") or ""))
+def _words(s):
+    """Lowercased alphanumeric word list of a name (order-sensitive key for
+    head/support de-duplication across title vs span punctuation)."""
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).split()
+
+
+def _display_time(t):
+    """The events[] time is a display string already; just drop a leading
+    zero ('08:00 PM' -> '8:00 PM') so it reads like the rest of the feed."""
+    t = (t or "").strip()
+    return re.sub(r"^0(\d)", r"\1", t) or None
+
+
+def parse(data):
+    events = data.get("events") or []
+    enr = parse_popups(data.get("popupdata") or "")
+    rows, seen = [], set()
+    for ev in events:
+        eid = str(ev.get("id"))
+        if not eid or eid == "None" or eid in seen:
+            continue  # dedup by id
+        # a "[2-Day Pass]" id sharing a date with the festival is a ticket
+        # package, not a show (none in the current feed — guard anyway).
+        ev_title = clean(ev.get("title"))
+        if ev_title and re.search(r"\[\s*\d[- ]?day\s+pass\s*\]",
+                                  ev_title, re.I):
+            continue
+        seen.add(eid)
+        en = enr.get(eid, {})
+        title = en.get("title") or ev_title
+        rows.append({
+            "date": ev.get("start"),
+            "title": title,
+            "headliner": en.get("headliner"),
+            "support": en.get("support"),
+            "genre": en.get("genre"),
+            "age": en.get("age"),
+            "doors": _display_time(ev.get("doors")),
+            "show_time": _display_time(ev.get("displayTime")),
+            "ticket_link": en.get("ticket_link"),
+            "ticket_status": en.get("ticket_status"),
+            "event_page": CALENDAR,
+            "description": en.get("description"),
+            "price": en.get("price"),
+            "presenters": en.get("presenters"),
+            "spotify": en.get("spotify"),
+        })
+    rows.sort(key=lambda r: (r.get("date") or "9999-99-99",
+                             r.get("show_time") or ""))
     return rows
 
 
 def main():
-    raw = fetch()
-    data = json.loads(raw)
-    if not isinstance(data, list) or not data:
-        raise SystemExit("live-music page not found via API (got "
-                         f"{type(data).__name__})")
-    content = data[0].get("content", {}).get("rendered", "")
-    if not content:
-        raise SystemExit("live-music page returned empty content")
+    data = fetch_data()
+    if not isinstance(data, dict) or "events" not in data:
+        raise SystemExit(f"calendar AJAX returned no events "
+                         f"(got {type(data).__name__})")
+    if data.get("error"):
+        raise SystemExit("calendar AJAX returned an error response")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(data, open(RAW, "w"), ensure_ascii=False)
-    rows = parse(content)
+    rows = parse(data)
     json.dump(rows, open(OUT, "w"), indent=1, ensure_ascii=False)
+    enriched = sum(1 for r in rows if r.get("description"))
+    with_link = sum(1 for r in rows if r.get("ticket_link"))
+    with_sp = sum(1 for r in rows if r.get("spotify"))
     no_date = [r["title"] for r in rows if not r.get("date")]
     no_title = [r["title"] for r in rows if not r.get("title")]
-    with_genre = sum(1 for r in rows if r.get("genre"))
-    print(f"events: {len(rows)}  (with genre/enrichment: {with_genre})")
+    print(f"events: {len(rows)}  (with enrichment: {enriched}, "
+          f"with ticket link: {with_link}, with spotify: {with_sp})")
     if rows:
         print(f"first: {rows[0].get('date')}  {rows[0].get('title')}")
         print(f"last:  {rows[-1].get('date')}  {rows[-1].get('title')}")
     print(f"missing date: {len(no_date)} {no_date[:5]}")
     print(f"missing title: {len(no_title)} {no_title[:5]}")
+    for r in rows[:10]:
+        print(f"  {r.get('date')}  {r.get('doors')} / {r.get('show_time')}  "
+              f"{r.get('title')}  [{r.get('ticket_status')}]")
 
 
 if __name__ == "__main__":
